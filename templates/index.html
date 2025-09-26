@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block title %}Inicio{% endblock %}
+{% block content %}
+<div class="text-center py-5">
+  <h1 class="display-5">Bienvenido al Proyecto Educativo</h1>
+  <p class="lead">Gestiona estudiantes, matrículas y pagos de forma simple.</p>
+  <a href="{{ url_for('enrollment') }}" class="btn btn-lg btn-success me-2"><i class="fa fa-user-plus"></i> Matricular</a>
+  <a href="{{ url_for('payment') }}" class="btn btn-lg btn-primary"><i class="fa fa-credit-card"></i> Pagar</a>
+</div>
+{% endblock %}

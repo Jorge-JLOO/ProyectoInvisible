@@ -1,0 +1,40 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Admin - Proyecto Educativo</title>
+    <link rel="stylesheet" href="/static/style.css">
+  </head>
+  <body>
+    <div class="container">
+      <h1>Panel de Administración</h1>
+      <h2>Estudiantes</h2>
+      <table>
+        <tr><th>ID</th><th>Nombre</th><th>Email</th><th>Teléfono</th><th>Registro</th><th>Acciones</th></tr>
+        {% for s in students %}
+        <tr>
+          <td>{{ s.id }}</td>
+          <td>{{ s.nombre }}</td>
+          <td>{{ s.email }}</td>
+          <td>{{ s.telefono }}</td>
+          <td>{{ s.fecha_registro }}</td>
+          <td><a href="/pay/{{ s.id }}">Registrar pago</a></td>
+        </tr>
+        {% endfor %}
+      </table>
+      <h2>Pagos</h2>
+      <table>
+        <tr><th>ID</th><th>Estudiante</th><th>Valor</th><th>Fecha</th><th>Factura</th></tr>
+        {% for p in payments %}
+        <tr>
+          <td>{{ p.id }}</td>
+          <td>{{ p.student.nombre }}</td>
+          <td>{{ p.amount }}</td>
+          <td>{{ p.fecha_pago }}</td>
+          <td><a href="/invoice/{{ p.id }}">Descargar PDF</a></td>
+        </tr>
+        {% endfor %}
+      </table>
+    </div>
+  </body>
+</html>

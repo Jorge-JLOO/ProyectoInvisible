@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h2 class="mb-4 text-center"><i class="fa fa-edit"></i> Editar Estudiante</h2>
+
+<form method="POST" class="shadow p-4 bg-white rounded">
+    <div class="mb-3">
+        <label class="form-label">Nombre</label>
+        <input type="text" class="form-control" name="nombre" value="{{ estudiante.nombre }}" required>
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label">Documento</label>
+        <input type="text" class="form-control" name="documento" value="{{ estudiante.documento }}" required>
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label">Teléfono</label>
+        <input type="text" class="form-control" name="telefono" value="{{ estudiante.telefono }}">
+    </div>
+
+    <button type="submit" class="btn btn-primary w-100">
+        <i class="fa fa-save"></i> Guardar Cambios
+    </button>
+</form>
+{% endblock %}
