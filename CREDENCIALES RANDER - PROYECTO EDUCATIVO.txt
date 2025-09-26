@@ -1,0 +1,19 @@
+Connections
+Hostname
+An internal hostname used by your Render services.....>        dpg-d3bhsv24d50c73bqou20-a
+
+Port.................................................>         5432
+
+Database.............................................>         proyecto_educativo_db
+ 
+Username.............................................>         proyecto_educativo_db_user
+
+Password.............................................>        93oi0YHGvI3U5AXbNax4hbtAKR7q9kUe
+
+
+Internal Database URL................................>        postgresql://proyecto_educativo_db_user:93oi0YHGvI3U5AXbNax4hbtAKR7q9kUe@dpg-d3bhsv24d50c73bqou20-                                                              a/proyecto_educativo_db
+
+
+External Database URL ..............................>         postgresql://proyecto_educativo_db_user:93oi0YHGvI3U5AXbNax4hbtAKR7q9kUe@dpg-d3bhsv24d50c73bqou20-a.oregon-                                                     postgres.render.com/proyecto_educativo_db
+
+PSQL Command........................................>         PGPASSWORD=93oi0YHGvI3U5AXbNax4hbtAKR7q9kUe psql -h dpg-d3bhsv24d50c73bqou20-a.oregon-postgres.render.com                                                               -U proyecto_educativo_db_user proyecto_educativo_db
