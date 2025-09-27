@@ -62,21 +62,20 @@ def enrollment():
             flash('Nombre, documento y curso son obligatorios','danger')
             return redirect(url_for('enrollment'))
 
-        try:
-            estudiante = Estudiante.query.filter_by(documento=documento).first()
-            if not estudiante:
+        estudiante = Estudiante.query.filter_by(documento=documento).first()
+        if not estudiante:
+            try:
                 estudiante = Estudiante(nombre=nombre, documento=documento, telefono=telefono)
                 db.session.add(estudiante)
                 db.session.commit()
-        except IntegrityError:
-            db.session.rollback()
-            estudiante = Estudiante.query.filter_by(documento=documento).first()
+            except IntegrityError:
+                db.session.rollback()
+                flash('El documento ya existe en el sistema','danger')
+                return redirect(url_for('enrollment'))
 
-        # Registrar matrícula
         matricula = Matricula(estudiante_id=estudiante.id, curso=curso)
         db.session.add(matricula)
         db.session.commit()
-
         flash('Matrícula registrada correctamente','success')
         return redirect(url_for('index'))
 
