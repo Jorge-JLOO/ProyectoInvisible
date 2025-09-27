@@ -1,7 +1,7 @@
 from flask import Flask, render_template, request, redirect, send_file, url_for, flash
 from sqlalchemy.exc import IntegrityError
 from flask_sqlalchemy import SQLAlchemy
-from datetime import datetime   # ✅ solo una vez
+from datetime import datetime
 from io import BytesIO
 from reportlab.lib.pagesizes import letter
 from reportlab.pdfgen import canvas
