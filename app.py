@@ -12,9 +12,14 @@ app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL') or 'sqlit
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 
+# 🔹 Crear las tablas al arrancar, incluso en Render (gunicorn)
+with app.app_context():
+    db.create_all()
+
 @app.context_processor
 def inject_now():
     return {'current_year': datetime.utcnow().year}
+
 # Models
 class Estudiante(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -22,6 +27,7 @@ class Estudiante(db.Model):
     documento = db.Column(db.String(50), unique=True, nullable=False)
     telefono = db.Column(db.String(50))
     activo = db.Column(db.Boolean, default=True)  # 👈 NUEVO CAMPO
+
 class Matricula(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     estudiante_id = db.Column(db.Integer, db.ForeignKey('estudiante.id'), nullable=False)
@@ -137,8 +143,7 @@ def eliminar_estudiante(id):
     db.session.delete(estudiante)
     db.session.commit()
     flash('Estudiante eliminado correctamente', 'warning')
-    return redirect(url_for('admin')) 
+    return redirect(url_for('admin'))
+
 if __name__ == '__main__':
-    with app.app_context():
-        db.create_all()
     app.run(host='0.0.0.0', port=int(os.environ.get('PORT',5000)), debug=True)
