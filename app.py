@@ -1,4 +1,5 @@
 from flask import Flask, render_template, request, redirect, send_file, url_for, flash
+from sqlalchemy.exc import IntegrityError
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime   # ✅ solo una vez
 from io import BytesIO
@@ -56,19 +57,29 @@ def enrollment():
         documento = request.form.get('documento','').strip()
         curso = request.form.get('curso','').strip()
         telefono = request.form.get('telefono','').strip()
+
         if not nombre or not documento or not curso:
             flash('Nombre, documento y curso son obligatorios','danger')
             return redirect(url_for('enrollment'))
-        estudiante = Estudiante.query.filter_by(documento=documento).first()
-        if not estudiante:
-            estudiante = Estudiante(nombre=nombre, documento=documento, telefono=telefono)
-            db.session.add(estudiante)
-            db.session.commit()
+
+        try:
+            estudiante = Estudiante.query.filter_by(documento=documento).first()
+            if not estudiante:
+                estudiante = Estudiante(nombre=nombre, documento=documento, telefono=telefono)
+                db.session.add(estudiante)
+                db.session.commit()
+        except IntegrityError:
+            db.session.rollback()
+            estudiante = Estudiante.query.filter_by(documento=documento).first()
+
+        # Registrar matrícula
         matricula = Matricula(estudiante_id=estudiante.id, curso=curso)
         db.session.add(matricula)
         db.session.commit()
+
         flash('Matrícula registrada correctamente','success')
         return redirect(url_for('index'))
+
     return render_template('enrollment.html')
 
 # Payment
@@ -80,23 +91,33 @@ def payment():
         valor = request.form.get('valor','0').strip()
         metodo = request.form.get('metodo','').strip()
         telefono = request.form.get('telefono','').strip()
+
         try:
             valor_f = float(valor)
         except ValueError:
             flash('Valor inválido','danger')
             return redirect(url_for('payment'))
+
         if not nombre or not documento or not metodo:
             flash('Nombre, documento y método son obligatorios','danger')
             return redirect(url_for('payment'))
-        estudiante = Estudiante.query.filter_by(documento=documento).first()
-        if not estudiante:
-            estudiante = Estudiante(nombre=nombre, documento=documento, telefono=telefono)
-            db.session.add(estudiante)
-            db.session.commit()
+
+        try:
+            estudiante = Estudiante.query.filter_by(documento=documento).first()
+            if not estudiante:
+                estudiante = Estudiante(nombre=nombre, documento=documento, telefono=telefono)
+                db.session.add(estudiante)
+                db.session.commit()
+        except IntegrityError:
+            db.session.rollback()
+            estudiante = Estudiante.query.filter_by(documento=documento).first()
+
+        # Registrar pago
         pago = Pago(estudiante_id=estudiante.id, valor=valor_f, metodo=metodo)
         db.session.add(pago)
         db.session.commit()
-        # generar PDF factura
+
+        # Generar PDF factura
         buffer = BytesIO()
         c = canvas.Canvas(buffer, pagesize=letter)
         c.setFont("Helvetica-Bold", 14)
@@ -113,6 +134,7 @@ def payment():
         c.save()
         buffer.seek(0)
         return send_file(buffer, as_attachment=True, download_name=f'factura_{pago.id}.pdf', mimetype='application/pdf')
+
     return render_template('payment.html')
 
 # Admin list (simple)
