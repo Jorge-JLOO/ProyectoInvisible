@@ -53,6 +53,7 @@
                 <a href="{{ url_for('editar_estudiante', id=e.id) }}" class="btn btn-sm btn-primary">
                     <i class="fa fa-edit"></i> Editar
                 </a>
+                <a href="{{ url_for('cambiar_password') }}">Cambiar contraseña</a>
 
                 <!-- Botón Activar/Inactivar -->
                 <form action="{{ url_for('toggle_estudiante', id=e.id) }}" method="post" style="display:inline;">
