@@ -23,6 +23,7 @@ login_manager.login_view = 'login'
 
 # --- Modelos ---
 class Usuario(UserMixin, db.Model):
+    __tablename__ = 'usuario'  # 👈 fuerza que use la tabla correcta
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(50), unique=True, nullable=False)
     password = db.Column(db.String(200), nullable=False)
