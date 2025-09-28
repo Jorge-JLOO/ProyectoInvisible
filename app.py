@@ -1,33 +1,42 @@
 from flask import Flask, render_template, request, redirect, send_file, url_for, flash
-from sqlalchemy.exc import IntegrityError
 from flask_sqlalchemy import SQLAlchemy
+from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required
+from sqlalchemy.exc import IntegrityError
 from datetime import datetime
 from io import BytesIO
 from reportlab.lib.pagesizes import letter
 from reportlab.pdfgen import canvas
+from werkzeug.security import generate_password_hash, check_password_hash
 import os
 
+# --- Configuración básica ---
 app = Flask(__name__)
-app.secret_key = os.environ.get('SECRET_KEY','devsecretkey')
+app.secret_key = os.environ.get('SECRET_KEY', 'devsecretkey')
 app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL') or 'sqlite:///educativo.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
 db = SQLAlchemy(app)
 
-# 🔹 Crear las tablas al arrancar, incluso en Render (gunicorn)
-with app.app_context():
-    db.create_all()
+# --- Login Manager ---
+login_manager = LoginManager(app)
+login_manager.login_view = 'login'
 
-@app.context_processor
-def inject_now():
-    return {'current_year': datetime.utcnow().year}
+# --- Modelos ---
+class Usuario(UserMixin, db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(50), unique=True, nullable=False)
+    password = db.Column(db.String(200), nullable=False)
 
-# Models
+@login_manager.user_loader
+def load_user(user_id):
+    return Usuario.query.get(int(user_id))
+
 class Estudiante(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     nombre = db.Column(db.String(100), nullable=False)
     documento = db.Column(db.String(50), unique=True, nullable=False)
     telefono = db.Column(db.String(50))
-    activo = db.Column(db.Boolean, default=True)  # 👈 NUEVO CAMPO
+    activo = db.Column(db.Boolean, default=True)
 
 class Matricula(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -44,10 +53,36 @@ class Pago(db.Model):
     fecha = db.Column(db.DateTime, default=datetime.utcnow)
     estudiante = db.relationship('Estudiante', backref=db.backref('pagos', lazy=True))
 
-# Routes
+# --- Context Processor ---
+@app.context_processor
+def inject_now():
+    return {'current_year': datetime.utcnow().year}
+
+# --- Rutas ---
 @app.route('/')
 def index():
     return render_template('index.html')
+
+# Login
+@app.route('/login', methods=['GET','POST'])
+def login():
+    if request.method == 'POST':
+        username = request.form['username']
+        password = request.form['password']
+
+        user = Usuario.query.filter_by(username=username).first()
+        if user and check_password_hash(user.password, password):
+            login_user(user)
+            return redirect(url_for('admin'))
+        else:
+            flash("Usuario o contraseña incorrectos", "danger")
+
+    return render_template('login.html')
+
+@app.route('/logout')
+def logout():
+    logout_user()
+    return redirect(url_for('login'))
 
 # Enrollment
 @app.route('/enrollment', methods=['GET','POST'])
@@ -111,12 +146,10 @@ def payment():
             db.session.rollback()
             estudiante = Estudiante.query.filter_by(documento=documento).first()
 
-        # Registrar pago
         pago = Pago(estudiante_id=estudiante.id, valor=valor_f, metodo=metodo)
         db.session.add(pago)
         db.session.commit()
 
-        # Generar PDF factura
         buffer = BytesIO()
         c = canvas.Canvas(buffer, pagesize=letter)
         c.setFont("Helvetica-Bold", 14)
@@ -136,8 +169,9 @@ def payment():
 
     return render_template('payment.html')
 
-# Admin list (simple)
+# Admin (con login requerido)
 @app.route('/admin')
+@login_required
 def admin():
     estudiantes = Estudiante.query.order_by(Estudiante.nombre).all()
     matriculas = Matricula.query.order_by(Matricula.fecha.desc()).all()
@@ -157,14 +191,32 @@ def editar_estudiante(id):
         return redirect(url_for('admin'))
     return render_template('editar_estudiante.html', estudiante=estudiante)
 
-# Eliminar estudiante
-@app.route('/admin/estudiante/<int:id>/eliminar', methods=['POST'])
-def eliminar_estudiante(id):
-    estudiante = Estudiante.query.get_or_404(id)
-    db.session.delete(estudiante)
+# Crear estudiante
+@app.route('/admin/crear_estudiante', methods=['POST'])
+def crear_estudiante():
+    nombre = request.form['nombre']
+    documento = request.form['documento']
+    telefono = request.form.get('telefono')
+    if not nombre or not documento:
+        flash("Nombre y documento son obligatorios", "danger")
+        return redirect(url_for('admin'))
+    nuevo = Estudiante(nombre=nombre, documento=documento, telefono=telefono)
+    db.session.add(nuevo)
     db.session.commit()
-    flash('Estudiante eliminado correctamente', 'warning')
+    flash("Estudiante creado correctamente", "success")
+    return redirect(url_for('admin'))
+
+# Activar/Inactivar estudiante
+@app.route('/admin/estudiante/<int:id>/toggle', methods=['POST'])
+def toggle_estudiante(id):
+    estudiante = Estudiante.query.get_or_404(id)
+    estudiante.activo = not estudiante.activo
+    db.session.commit()
+    estado = "activado" if estudiante.activo else "inactivado"
+    flash(f'Estudiante {estado} correctamente', 'info')
     return redirect(url_for('admin'))
 
 if __name__ == '__main__':
+    with app.app_context():
+        db.create_all()
     app.run(host='0.0.0.0', port=int(os.environ.get('PORT',5000)), debug=True)
