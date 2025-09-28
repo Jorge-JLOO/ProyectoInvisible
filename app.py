@@ -217,6 +217,35 @@ def toggle_estudiante(id):
     flash(f'Estudiante {estado} correctamente', 'info')
     return redirect(url_for('admin'))
 
+from flask_login import login_required, current_user
+from werkzeug.security import generate_password_hash, check_password_hash
+
+@app.route('/cambiar_password', methods=['GET', 'POST'])
+@login_required
+def cambiar_password():
+    if request.method == 'POST':
+        actual = request.form['actual']
+        nueva = request.form['nueva']
+        confirmar = request.form['confirmar']
+
+        # Verificar contraseña actual
+        if not check_password_hash(current_user.password, actual):
+            flash('❌ La contraseña actual no es correcta', 'danger')
+            return redirect(url_for('cambiar_password'))
+
+        # Confirmar nueva contraseña
+        if nueva != confirmar:
+            flash('⚠️ La nueva contraseña y la confirmación no coinciden', 'warning')
+            return redirect(url_for('cambiar_password'))
+
+        # Guardar nueva contraseña
+        current_user.password = generate_password_hash(nueva)
+        db.session.commit()
+        flash('✅ Contraseña actualizada con éxito', 'success')
+        return redirect(url_for('admin'))
+
+    return render_template('cambiar_password.html')
+
 if __name__ == '__main__':
     with app.app_context():
         db.create_all()
