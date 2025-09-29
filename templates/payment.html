@@ -1,32 +1,53 @@
 {% extends "base.html" %}
-{% block title %}Opciones de Pago - Proyecto Educativo{% endblock %}
+{% block title %}Registro de Pagos - Proyecto Educativo{% endblock %}
 
 {% block content %}
-<h2 class="mb-4 text-center"><i class="fa fa-credit-card"></i> Opciones de Pago</h2>
+<h2 class="mb-4 text-center"><i class="fa fa-money-bill-wave"></i> Registro de Pago</h2>
 
-<div class="row justify-content-center">
-  <!-- Pago en línea -->
-  <div class="col-md-5 mb-4">
-    <div class="card shadow-sm text-center p-4 h-100">
-      <i class="fa fa-globe fa-3x text-primary mb-3"></i>
-      <h4>Pagar en línea</h4>
-      <p>Realiza tu pago de manera rápida y segura con PSE, tarjeta débito o crédito.</p>
-      <a href="{{ url_for('pago_online') }}" class="btn btn-primary w-100">
-        <i class="fa fa-arrow-right"></i> Ir a pagar
-      </a>
+<div class="card shadow-sm p-4">
+  <form method="POST">
+    <div class="row">
+      <div class="col-md-6 mb-3">
+        <label class="form-label">Nombre</label>
+        <input class="form-control" name="nombre" placeholder="Nombre del estudiante" required>
+      </div>
+      <div class="col-md-6 mb-3">
+        <label class="form-label">Documento</label>
+        <input class="form-control" name="documento" placeholder="Cédula o documento" required>
+      </div>
     </div>
-  </div>
 
-  <!-- Pago en efectivo -->
-  <div class="col-md-5 mb-4">
-    <div class="card shadow-sm text-center p-4 h-100">
-      <i class="fa fa-money-bill-wave fa-3x text-success mb-3"></i>
-      <h4>Pago en efectivo</h4>
-      <p>Genera una factura y paga en ventanilla. El administrador validará el pago.</p>
-      <a href="{{ url_for('pago_efectivo') }}" class="btn btn-success w-100">
-        <i class="fa fa-file-invoice"></i> Generar factura
-      </a>
+    <div class="mb-3">
+      <label class="form-label">Teléfono (opcional)</label>
+      <input class="form-control" name="telefono" placeholder="Número de contacto">
     </div>
-  </div>
+
+    <div class="row">
+      <div class="col-md-6 mb-3">
+        <label class="form-label">Valor</label>
+        <input class="form-control" name="valor" type="number" step="0.01" placeholder="0.00" required>
+      </div>
+      <div class="col-md-6 mb-3">
+        <label class="form-label">Método de pago</label>
+        <select class="form-select" name="metodo" required>
+          <option value="">Seleccione...</option>
+          <option>Efectivo</option>
+          <option>Transferencia</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="d-grid gap-2">
+      <!-- Botón normal que genera el PDF -->
+      <button class="btn btn-success" type="submit">
+        <i class="fa fa-file-invoice"></i> Generar Factura (PDF)
+      </button>
+
+      <!-- Botón futuro para pagos online -->
+      <button class="btn btn-primary" type="button" onclick="alert('🚧 Pagos online estarán disponibles próximamente 🚀');">
+        <i class="fa fa-credit-card"></i> Pagar Online (Próximamente)
+      </button>
+    </div>
+  </form>
 </div>
 {% endblock %}
