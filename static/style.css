@@ -100,3 +100,45 @@ a {
 a:hover {
     text-decoration: underline;
 }
+
+/* ----------- BOTONES DEL NAVBAR ----------- */
+.navbar .btn-nav {
+    margin-left: 6px;
+    font-weight: 500;
+    color: #fff !important;
+    border: none;
+    transition: all 0.3s ease-in-out;
+    padding: 6px 14px;
+    border-radius: 8px;
+}
+
+.btn-grad {
+    background-size: 200% auto;
+    background-image: linear-gradient(45deg, #ff416c, #ff4b2b, #ff6a00);
+}
+
+.btn-grad-green {
+    background-image: linear-gradient(45deg, #11998e, #38ef7d);
+    background-size: 200% auto;
+}
+
+.btn-grad-blue {
+    background-image: linear-gradient(45deg, #396afc, #2948ff);
+    background-size: 200% auto;
+}
+
+.btn-grad-orange {
+    background-image: linear-gradient(45deg, #f7971e, #ffd200);
+    background-size: 200% auto;
+}
+
+.btn-grad-dark {
+    background-image: linear-gradient(45deg, #232526, #414345);
+    background-size: 200% auto;
+}
+
+.btn-nav:hover {
+    transform: scale(1.05);
+    background-position: right center;
+    opacity: 0.95;
+}

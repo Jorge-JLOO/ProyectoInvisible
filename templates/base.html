@@ -13,7 +13,8 @@
 
     <!-- Estilos propios -->
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-</head>
+
+   </head>
 <body class="d-flex flex-column min-vh-100">
 
     <!-- Navbar -->
@@ -29,31 +30,47 @@
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav ms-auto">
                     <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('index') }}"><i class="fa fa-home"></i> Inicio</a>
+                        <a class="btn btn-grad btn-nav" href="{{ url_for('index') }}">
+                            <i class="fa fa-home"></i> Inicio
+                        </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('enrollment') }}"><i class="fa fa-user-plus"></i> Matrículas</a>
+                        <a class="btn btn-grad-green btn-nav" href="{{ url_for('enrollment') }}">
+                            <i class="fa fa-user-plus"></i> Matrículas
+                        </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('payment') }}"><i class="fa fa-credit-card"></i> Pagos</a>
+                        <a class="btn btn-grad-blue btn-nav" href="{{ url_for('payment') }}">
+                            <i class="fa fa-credit-card"></i> Pagos
+                        </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('consulta') }}"><i class="fa fa-search"></i> Consulta</a>
+                        <a class="btn btn-grad-orange btn-nav" href="{{ url_for('consulta') }}">
+                            <i class="fa fa-search"></i> Consulta
+                        </a>
                     </li>
 
                     {% if current_user.is_authenticated %}
                         <li class="nav-item">
-                            <a class="nav-link" href="{{ url_for('admin') }}"><i class="fa fa-cogs"></i> Administración</a>
+                            <a class="btn btn-grad-dark btn-nav" href="{{ url_for('admin') }}">
+                                <i class="fa fa-cogs"></i> Administración
+                            </a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" href="{{ url_for('cambiar_password') }}"><i class="fa fa-key"></i> Cambiar contraseña</a>
+                            <a class="btn btn-grad-orange btn-nav" href="{{ url_for('cambiar_password') }}">
+                                <i class="fa fa-key"></i> Cambiar contraseña
+                            </a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link text-warning" href="{{ url_for('logout') }}"><i class="fa fa-sign-out-alt"></i> Salir</a>
+                            <a class="btn btn-grad btn-nav" href="{{ url_for('logout') }}">
+                                <i class="fa fa-sign-out-alt"></i> Salir
+                            </a>
                         </li>
                     {% else %}
                         <li class="nav-item">
-                            <a class="nav-link" href="{{ url_for('login') }}"><i class="fa fa-sign-in-alt"></i> Iniciar sesión</a>
+                            <a class="btn btn-grad-blue btn-nav" href="{{ url_for('login') }}">
+                                <i class="fa fa-sign-in-alt"></i> Iniciar sesión
+                            </a>
                         </li>
                     {% endif %}
                 </ul>
