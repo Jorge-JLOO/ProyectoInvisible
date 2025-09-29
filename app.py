@@ -7,7 +7,10 @@ from io import BytesIO
 from reportlab.lib.pagesizes import letter
 from reportlab.pdfgen import canvas
 from werkzeug.security import generate_password_hash, check_password_hash
+import requests
+import uuid
 import os
+
 
 # --- Configuración básica ---
 app = Flask(__name__)
@@ -252,6 +255,122 @@ def cambiar_password():
         return redirect(url_for('admin'))
 
     return render_template('cambiar_password.html')
+
+    # Opción de pago en línea (ejemplo con sandbox de Wompi)
+@app.route('/pago_online')
+def pago_online():
+    flash("Redirigiendo a pasarela de pagos...", "info")
+    return redirect("https://sandbox.wompi.co/")  # Aquí luego integras pasarela real
+
+# Opción de pago en efectivo
+@app.route('/pago_efectivo', methods=['GET','POST'])
+def pago_efectivo():
+    if request.method == 'POST':
+        nombre = request.form.get('nombre','').strip()
+        documento = request.form.get('documento','').strip()
+        valor = request.form.get('valor','0').strip()
+        metodo = request.form.get('metodo','').strip()
+        telefono = request.form.get('telefono','').strip()
+
+        try:
+            valor_f = float(valor)
+        except ValueError:
+            flash('Valor inválido','danger')
+            return redirect(url_for('pago_efectivo'))
+
+        if not nombre or not documento or not metodo:
+            flash('Nombre, documento y método son obligatorios','danger')
+            return redirect(url_for('pago_efectivo'))
+
+        estudiante = Estudiante.query.filter_by(documento=documento).first()
+        if not estudiante:
+            try:
+                estudiante = Estudiante(nombre=nombre, documento=documento, telefono=telefono)
+                db.session.add(estudiante)
+                db.session.commit()
+            except IntegrityError:
+                db.session.rollback()
+                estudiante = Estudiante.query.filter_by(documento=documento).first()
+
+        pago = Pago(estudiante_id=estudiante.id, valor=valor_f, metodo=metodo)
+        db.session.add(pago)
+        db.session.commit()
+
+        # Generar factura en PDF
+        buffer = BytesIO()
+        c = canvas.Canvas(buffer, pagesize=letter)
+        c.setFont("Helvetica-Bold", 14)
+        c.drawCentredString(300, 760, "Factura de Pago - Proyecto Educativo")
+        c.setFont("Helvetica", 11)
+        c.drawString(50, 720, f"Factura ID: {pago.id}")
+        c.drawString(50, 700, f"Fecha: {pago.fecha.strftime('%Y-%m-%d %H:%M:%S')}")
+        c.drawString(50, 680, f"Nombre: {estudiante.nombre}")
+        c.drawString(50, 660, f"Documento: {estudiante.documento}")
+        c.drawString(50, 640, f"Teléfono: {estudiante.telefono or ''}")
+        c.drawString(50, 620, f"Método de pago: {pago.metodo}")
+        c.drawString(50, 600, f"Valor: ${pago.valor:,.2f}")
+        c.showPage()
+        c.save()
+        buffer.seek(0)
+        return send_file(buffer, as_attachment=True,
+                         download_name=f'factura_{pago.id}.pdf',
+                         mimetype='application/pdf')
+
+    return render_template("pago_efectivo.html")
+
+# Ruta de pago online con Wompi
+@app.route('/pago_online', methods=['GET', 'POST'])
+def pago_online():
+    if request.method == 'POST':
+        nombre = request.form.get('nombre')
+        documento = request.form.get('documento')
+        valor = request.form.get('valor')
+
+        try:
+            valor_f = float(valor)
+        except ValueError:
+            flash("Monto inválido", "danger")
+            return redirect(url_for("pago_online"))
+
+        # --- Crear orden en la base de datos (opcional) ---
+        estudiante = Estudiante.query.filter_by(documento=documento).first()
+        if not estudiante:
+            estudiante = Estudiante(nombre=nombre, documento=documento)
+            db.session.add(estudiante)
+            db.session.commit()
+
+        pago = Pago(estudiante_id=estudiante.id, valor=valor_f, metodo="Wompi")
+        db.session.add(pago)
+        db.session.commit()
+
+        # --- Crear transacción en Wompi ---
+        reference = str(uuid.uuid4())  # referencia única
+        amount_in_cents = int(valor_f * 100)  # convertir a centavos
+
+        headers = {"Authorization": f"Bearer {os.environ.get('WOMPI_PRIVATE_KEY')}"}
+        data = {
+            "amount_in_cents": amount_in_cents,
+            "currency": "COP",
+            "customer_email": "correo@demo.com",  # puedes reemplazarlo con el del estudiante
+            "payment_method_types": ["PSE", "CARD", "NEQUI"],
+            "redirect_url": url_for("confirmacion_pago", _external=True),
+            "reference": reference
+        }
+
+        r = requests.post("https://sandbox.wompi.co/v1/transactions", json=data, headers=headers)
+        if r.status_code == 201:
+            checkout_url = r.json()["data"]["payment_link"]
+            return redirect(checkout_url)
+        else:
+            flash("Error al conectar con Wompi", "danger")
+            return redirect(url_for("pago_online"))
+
+    return render_template("pago_online.html")
+
+@app.route('/confirmacion_pago')
+def confirmacion_pago():
+    flash("✅ Gracias, tu pago está siendo procesado", "success")
+    return redirect(url_for("index"))
 
 # --- MAIN ---
 if __name__ == '__main__':
