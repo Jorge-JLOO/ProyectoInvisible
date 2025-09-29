@@ -176,6 +176,7 @@ def payment():
 
     # GET → mostrar formulario
     return render_template('payment.html')
+
 # --- Consulta pública por documento ---
 @app.route('/consulta', methods=['GET','POST'])
 def consulta():
@@ -256,13 +257,7 @@ def cambiar_password():
 
     return render_template('cambiar_password.html')
 
-    # Opción de pago en línea (ejemplo con sandbox de Wompi)
-@app.route('/pago_online')
-def pago_online():
-    flash("Redirigiendo a pasarela de pagos...", "info")
-    return redirect("https://sandbox.wompi.co/")  # Aquí luego integras pasarela real
-
-# Opción de pago en efectivo
+# --- Pago en efectivo ---
 @app.route('/pago_efectivo', methods=['GET','POST'])
 def pago_efectivo():
     if request.method == 'POST':
@@ -318,7 +313,7 @@ def pago_efectivo():
 
     return render_template("pago_efectivo.html")
 
-# Ruta de pago online con Wompi
+# --- Pago online con Wompi ---
 @app.route('/pago_online', methods=['GET', 'POST'])
 def pago_online():
     if request.method == 'POST':
@@ -332,7 +327,6 @@ def pago_online():
             flash("Monto inválido", "danger")
             return redirect(url_for("pago_online"))
 
-        # --- Crear orden en la base de datos (opcional) ---
         estudiante = Estudiante.query.filter_by(documento=documento).first()
         if not estudiante:
             estudiante = Estudiante(nombre=nombre, documento=documento)
@@ -343,7 +337,6 @@ def pago_online():
         db.session.add(pago)
         db.session.commit()
 
-        # --- Crear transacción en Wompi ---
         reference = str(uuid.uuid4())  # referencia única
         amount_in_cents = int(valor_f * 100)  # convertir a centavos
 
@@ -351,19 +344,20 @@ def pago_online():
         data = {
             "amount_in_cents": amount_in_cents,
             "currency": "COP",
-            "customer_email": "correo@demo.com",  # puedes reemplazarlo con el del estudiante
+            "customer_email": "correo@demo.com",
             "payment_method_types": ["PSE", "CARD", "NEQUI"],
             "redirect_url": url_for("confirmacion_pago", _external=True),
             "reference": reference
         }
 
         r = requests.post("https://sandbox.wompi.co/v1/transactions", json=data, headers=headers)
-        if r.status_code == 201:
-            checkout_url = r.json()["data"]["payment_link"]
-            return redirect(checkout_url)
-        else:
-            flash("Error al conectar con Wompi", "danger")
-            return redirect(url_for("pago_online"))
+        if r.status_code == 201 and "data" in r.json():
+            checkout_url = r.json()["data"].get("payment_link")
+            if checkout_url:
+                return redirect(checkout_url)
+
+        flash("Error al conectar con Wompi", "danger")
+        return redirect(url_for("pago_online"))
 
     return render_template("pago_online.html")
 
