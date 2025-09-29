@@ -1,18 +1,27 @@
 {% extends "base.html" %}
+{% block title %}Iniciar sesión - Proyecto Educativo{% endblock %}
 
 {% block content %}
-<div class="container" style="max-width: 400px; margin-top: 80px;">
-    <h3 class="text-center"><i class="fa fa-lock"></i> Iniciar Sesión</h3>
-    <form method="POST" class="shadow p-4 bg-white rounded">
+<div class="row justify-content-center">
+  <div class="col-md-5">
+    <div class="card shadow-sm p-4">
+      <h4 class="mb-4 text-center"><i class="fa fa-sign-in-alt"></i> Iniciar sesión</h4>
+      <form method="POST">
         <div class="mb-3">
-            <label class="form-label">Usuario</label>
-            <input type="text" class="form-control" name="username" required>
+          <label class="form-label">Usuario</label>
+          <input type="text" name="username" class="form-control" placeholder="Ingrese su usuario" required>
         </div>
         <div class="mb-3">
-            <label class="form-label">Contraseña</label>
-            <input type="password" class="form-control" name="password" required>
+          <label class="form-label">Contraseña</label>
+          <input type="password" name="password" class="form-control" placeholder="Ingrese su contraseña" required>
         </div>
-        <button type="submit" class="btn btn-primary w-100"><i class="fa fa-sign-in"></i> Entrar</button>
-    </form>
+        <div class="d-grid">
+          <button type="submit" class="btn btn-primary">
+            <i class="fa fa-lock"></i> Ingresar
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
 </div>
 {% endblock %}

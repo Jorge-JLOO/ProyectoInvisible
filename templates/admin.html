@@ -1,125 +1,118 @@
 {% extends "base.html" %}
+{% block title %}Panel de administración - Proyecto Educativo{% endblock %}
 
 {% block content %}
-<h2 class="mb-4 text-center"><i class="fa fa-cogs"></i> Panel de Administración</h2>
+<h2 class="mb-4"><i class="fa fa-cogs"></i> Panel de Administración</h2>
 
-<!-- Crear Estudiante -->
-<h3 class="mt-4"><i class="fa fa-user-plus"></i> Registrar Estudiante</h3>
-<form method="POST" action="{{ url_for('crear_estudiante') }}" class="shadow p-4 bg-white rounded mb-4" style="max-width:600px;">
-    <div class="mb-3">
-        <label class="form-label">Nombre</label>
-        <input type="text" class="form-control" name="nombre" required>
-    </div>
-    <div class="mb-3">
-        <label class="form-label">Documento</label>
-        <input type="text" class="form-control" name="documento" required>
-    </div>
-    <div class="mb-3">
-        <label class="form-label">Teléfono</label>
-        <input type="text" class="form-control" name="telefono">
-    </div>
-    <button type="submit" class="btn btn-success"><i class="fa fa-save"></i> Guardar</button>
-</form>
+<div class="row">
+  <!-- Estudiantes -->
+  <div class="col-lg-6">
+    <div class="card shadow-sm mb-4">
+      <div class="card-header bg-primary text-white">
+        <i class="fa fa-users"></i> Estudiantes
+      </div>
+      <div class="card-body">
+        <!-- Formulario de nuevo estudiante -->
+        <form action="{{ url_for('crear_estudiante') }}" method="POST" class="mb-3">
+          <div class="row g-2">
+            <div class="col-md-4">
+              <input name="nombre" class="form-control" placeholder="Nombre" required>
+            </div>
+            <div class="col-md-4">
+              <input name="documento" class="form-control" placeholder="Documento" required>
+            </div>
+            <div class="col-md-3">
+              <input name="telefono" class="form-control" placeholder="Teléfono">
+            </div>
+            <div class="col-md-1 d-grid">
+              <button class="btn btn-success"><i class="fa fa-plus"></i></button>
+            </div>
+          </div>
+        </form>
 
-<!-- Estudiantes -->
-<h3><i class="fa fa-users"></i> Estudiantes</h3>
-<table class="table table-striped table-hover">
-    <thead>
-        <tr>
-            <th>ID</th>
-            <th>Nombre</th>
-            <th>Documento</th>
-            <th>Teléfono</th>
-            <th>Estado</th>
-            <th>Acciones</th>
-        </tr>
-    </thead>
-    <tbody>
-        {% for e in estudiantes %}
-        <tr>
-            <td>{{ e.id }}</td>
-            <td>{{ e.nombre }}</td>
-            <td>{{ e.documento }}</td>
-            <td>{{ e.telefono }}</td>
-            <td>
-                {% if e.activo %}
+        <!-- Lista de estudiantes -->
+        <div class="table-responsive">
+          <table class="table table-striped table-hover align-middle">
+            <thead class="table-light">
+              <tr>
+                <th>Nombre</th>
+                <th>Documento</th>
+                <th>Teléfono</th>
+                <th>Estado</th>
+                <th class="text-center">Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for est in estudiantes %}
+              <tr>
+                <td>{{ est.nombre }}</td>
+                <td>{{ est.documento }}</td>
+                <td>{{ est.telefono or "-" }}</td>
+                <td>
+                  {% if est.activo %}
                     <span class="badge bg-success">Activo</span>
-                {% else %}
-                    <span class="badge bg-secondary">Inactivo</span>
-                {% endif %}
-            </td>
-            <td>
-                <!-- Botón Editar -->
-                <a href="{{ url_for('editar_estudiante', id=e.id) }}" class="btn btn-sm btn-primary">
-                    <i class="fa fa-edit"></i> Editar
-                </a>
-                <a href="{{ url_for('cambiar_password') }}">Cambiar contraseña</a>
+                  {% else %}
+                    <span class="badge bg-danger">Inactivo</span>
+                  {% endif %}
+                </td>
+                <td class="text-center">
+                  <a href="{{ url_for('editar_estudiante', id=est.id) }}" class="btn btn-sm btn-warning">
+                    <i class="fa fa-edit"></i>
+                  </a>
+                  <form action="{{ url_for('toggle_estudiante', id=est.id) }}" method="POST" class="d-inline">
+                    <button class="btn btn-sm btn-secondary">
+                      <i class="fa fa-sync"></i>
+                    </button>
+                  </form>
+                </td>
+              </tr>
+              {% else %}
+              <tr>
+                <td colspan="5" class="text-center text-muted">No hay estudiantes registrados</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
 
-                <!-- Botón Activar/Inactivar -->
-                <form action="{{ url_for('toggle_estudiante', id=e.id) }}" method="post" style="display:inline;">
-                    {% if e.activo %}
-                        <button type="submit" class="btn btn-sm btn-warning">Inactivar</button>
-                    {% else %}
-                        <button type="submit" class="btn btn-sm btn-success">Activar</button>
-                    {% endif %}
-                </form>
-            </td>
-        </tr>
-        {% else %}
-        <tr><td colspan="6" class="text-center">No hay estudiantes registrados.</td></tr>
-        {% endfor %}
-    </tbody>
-</table>
-
-<!-- Matrículas -->
-<h3 class="mt-5"><i class="fa fa-book"></i> Matrículas</h3>
-<table class="table table-striped table-hover">
-    <thead>
-        <tr>
-            <th>ID</th>
-            <th>Estudiante</th>
-            <th>Curso</th>
-            <th>Fecha</th>
-        </tr>
-    </thead>
-    <tbody>
-        {% for m in matriculas %}
-        <tr>
-            <td>{{ m.id }}</td>
-            <td>{{ m.estudiante.nombre }}</td>
-            <td>{{ m.curso }}</td>
-            <td>{{ m.fecha.strftime("%Y-%m-%d") }}</td>
-        </tr>
-        {% else %}
-        <tr><td colspan="4" class="text-center">No hay matrículas registradas.</td></tr>
-        {% endfor %}
-    </tbody>
-</table>
-
-<!-- Pagos -->
-<h3 class="mt-5"><i class="fa fa-credit-card"></i> Pagos</h3>
-<table class="table table-striped table-hover">
-    <thead>
-        <tr>
-            <th>ID</th>
-            <th>Estudiante</th>
-            <th>Valor</th>
-            <th>Método</th>
-            <th>Fecha</th>
-        </tr>
-    </thead>
-    <tbody>
-        {% for p in pagos %}
-        <tr>
-            <td>{{ p.id }}</td>
-            <td>{{ p.estudiante.nombre }}</td>
-            <td>${{ "%.2f"|format(p.valor) }}</td>
-            <td>{{ p.metodo }}</td>
-            <td>{{ p.fecha.strftime("%Y-%m-%d") }}</td>
-        </tr>
-        {% else %}
-        <tr><td colspan="5" class="text-center">No hay pagos registrados.</td></tr>
-        {% endfor %}
-    </tbody>
-</table>
+  <!-- Pagos -->
+  <div class="col-lg-6">
+    <div class="card shadow-sm mb-4">
+      <div class="card-header bg-success text-white">
+        <i class="fa fa-credit-card"></i> Pagos recientes
+      </div>
+      <div class="card-body">
+        <div class="table-responsive">
+          <table class="table table-sm table-hover align-middle">
+            <thead class="table-light">
+              <tr>
+                <th>Fecha</th>
+                <th>Documento</th>
+                <th>Valor</th>
+                <th>Método</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for p in pagos %}
+              <tr>
+                <td>{{ p.fecha.strftime('%Y-%m-%d') }}</td>
+                <td>{{ p.estudiante.documento }}</td>
+                <td>${{ "%.2f"|format(p.valor) }}</td>
+                <td>{{ p.metodo }}</td>
+              </tr>
+              {% else %}
+              <tr>
+                <td colspan="4" class="text-center text-muted">No hay pagos registrados</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
 {% endblock %}

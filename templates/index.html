@@ -1,10 +1,24 @@
 {% extends "base.html" %}
-{% block title %}Inicio{% endblock %}
+{% block title %}Inicio - Proyecto Educativo{% endblock %}
+
 {% block content %}
 <div class="text-center py-5">
-  <h1 class="display-5">Bienvenido al Proyecto Educativo</h1>
-  <p class="lead">Gestiona estudiantes, matrículas y pagos de forma simple.</p>
-  <a href="{{ url_for('enrollment') }}" class="btn btn-lg btn-success me-2"><i class="fa fa-user-plus"></i> Matricular</a>
-  <a href="{{ url_for('payment') }}" class="btn btn-lg btn-primary"><i class="fa fa-credit-card"></i> Pagar</a>
+  <h1 class="display-4 fw-bold mb-3">
+    <i class="fa-solid fa-graduation-cap text-primary"></i>
+    Bienvenido al Proyecto Educativo
+  </h1>
+  <p class="lead mb-4">Gestiona estudiantes, matrículas y pagos de forma simple y rápida.</p>
+  
+  <div class="d-flex justify-content-center gap-3 flex-wrap">
+    <a href="{{ url_for('enrollment') }}" class="btn btn-lg btn-success">
+      <i class="fa fa-user-plus"></i> Registrar Matrícula
+    </a>
+    <a href="{{ url_for('payment') }}" class="btn btn-lg btn-primary">
+      <i class="fa fa-credit-card"></i> Registrar Pago
+    </a>
+    <a href="{{ url_for('consulta') }}" class="btn btn-lg btn-info text-white">
+      <i class="fa fa-search"></i> Consultar Estudiante
+    </a>
+  </div>
 </div>
 {% endblock %}
