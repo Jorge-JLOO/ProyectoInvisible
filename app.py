@@ -1,6 +1,6 @@
-from flask import Flask, render_template, request, redirect, send_file, url_for, flash
+ffrom flask import Flask, render_template, request, redirect, send_file, url_for, flash
 from flask_sqlalchemy import SQLAlchemy
-from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required
+from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
 from sqlalchemy.exc import IntegrityError
 from datetime import datetime
 from io import BytesIO
@@ -23,7 +23,7 @@ login_manager.login_view = 'login'
 
 # --- Modelos ---
 class Usuario(UserMixin, db.Model):
-    __tablename__ = 'usuario'  # 👈 fuerza que use la tabla correcta
+    __tablename__ = 'usuario'
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(50), unique=True, nullable=False)
     password = db.Column(db.String(200), nullable=False)
@@ -59,12 +59,13 @@ class Pago(db.Model):
 def inject_now():
     return {'current_year': datetime.utcnow().year}
 
-# --- Rutas ---
+# ------------------- RUTAS -------------------
+
 @app.route('/')
 def index():
     return render_template('index.html')
 
-# Login
+# --- Login ---
 @app.route('/login', methods=['GET','POST'])
 def login():
     if request.method == 'POST':
@@ -85,7 +86,7 @@ def logout():
     logout_user()
     return redirect(url_for('login'))
 
-# Enrollment
+# --- Enrollment ---
 @app.route('/enrollment', methods=['GET','POST'])
 def enrollment():
     if request.method == 'POST':
@@ -117,7 +118,7 @@ def enrollment():
 
     return render_template('enrollment.html')
 
-# Payment
+# --- Payment ---
 @app.route('/payment', methods=['GET','POST'])
 def payment():
     if request.method == 'POST':
@@ -170,7 +171,16 @@ def payment():
 
     return render_template('payment.html')
 
-# Admin (con login requerido)
+# --- Consulta pública por documento ---
+@app.route('/consulta', methods=['GET','POST'])
+def consulta():
+    estudiante = None
+    if request.method == 'POST':
+        documento = request.form.get('documento')
+        estudiante = Estudiante.query.filter_by(documento=documento).first()
+    return render_template('consulta.html', estudiante=estudiante)
+
+# --- Admin ---
 @app.route('/admin')
 @login_required
 def admin():
@@ -179,8 +189,8 @@ def admin():
     pagos = Pago.query.order_by(Pago.fecha.desc()).all()
     return render_template('admin.html', estudiantes=estudiantes, matriculas=matriculas, pagos=pagos)
 
-# Editar estudiante
 @app.route('/admin/estudiante/<int:id>/editar', methods=['GET', 'POST'])
+@login_required
 def editar_estudiante(id):
     estudiante = Estudiante.query.get_or_404(id)
     if request.method == 'POST':
@@ -192,8 +202,8 @@ def editar_estudiante(id):
         return redirect(url_for('admin'))
     return render_template('editar_estudiante.html', estudiante=estudiante)
 
-# Crear estudiante
 @app.route('/admin/crear_estudiante', methods=['POST'])
+@login_required
 def crear_estudiante():
     nombre = request.form['nombre']
     documento = request.form['documento']
@@ -207,8 +217,8 @@ def crear_estudiante():
     flash("Estudiante creado correctamente", "success")
     return redirect(url_for('admin'))
 
-# Activar/Inactivar estudiante
 @app.route('/admin/estudiante/<int:id>/toggle', methods=['POST'])
+@login_required
 def toggle_estudiante(id):
     estudiante = Estudiante.query.get_or_404(id)
     estudiante.activo = not estudiante.activo
@@ -217,9 +227,7 @@ def toggle_estudiante(id):
     flash(f'Estudiante {estado} correctamente', 'info')
     return redirect(url_for('admin'))
 
-from flask_login import login_required, current_user
-from werkzeug.security import generate_password_hash, check_password_hash
-
+# --- Cambiar contraseña ---
 @app.route('/cambiar_password', methods=['GET', 'POST'])
 @login_required
 def cambiar_password():
@@ -228,17 +236,14 @@ def cambiar_password():
         nueva = request.form['nueva']
         confirmar = request.form['confirmar']
 
-        # Verificar contraseña actual
         if not check_password_hash(current_user.password, actual):
             flash('❌ La contraseña actual no es correcta', 'danger')
             return redirect(url_for('cambiar_password'))
 
-        # Confirmar nueva contraseña
         if nueva != confirmar:
             flash('⚠️ La nueva contraseña y la confirmación no coinciden', 'warning')
             return redirect(url_for('cambiar_password'))
 
-        # Guardar nueva contraseña
         current_user.password = generate_password_hash(nueva)
         db.session.commit()
         flash('✅ Contraseña actualizada con éxito', 'success')
@@ -246,6 +251,7 @@ def cambiar_password():
 
     return render_template('cambiar_password.html')
 
+# --- MAIN ---
 if __name__ == '__main__':
     with app.app_context():
         db.create_all()

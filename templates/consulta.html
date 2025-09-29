@@ -1,0 +1,53 @@
+<!-- templates/consulta.html -->
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Consulta de Estudiantes</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <h1>🔎 Consulta de Estudiante</h1>
+
+    <form method="POST">
+        <label for="documento">Ingrese número de documento:</label>
+        <input type="text" id="documento" name="documento" required>
+        <button type="submit">Consultar</button>
+    </form>
+
+    {% if estudiante %}
+        <hr>
+        <h2>Resultados de la búsqueda</h2>
+        <p><strong>Nombre:</strong> {{ estudiante.nombre }}</p>
+        <p><strong>Documento:</strong> {{ estudiante.documento }}</p>
+        <p><strong>Teléfono:</strong> {{ estudiante.telefono or "No registrado" }}</p>
+        <p><strong>Estado:</strong> 
+            {% if estudiante.activo %}
+                ✅ Activo
+            {% else %}
+                ❌ Inactivo
+            {% endif %}
+        </p>
+
+        <h3>Pagos registrados</h3>
+        {% if estudiante.pagos %}
+            <ul>
+                {% for pago in estudiante.pagos %}
+                    <li>
+                        {{ pago.fecha.strftime("%Y-%m-%d") }} - 
+                        {{ pago.metodo }} - 
+                        ${{ "{:,.2f}".format(pago.valor) }}
+                    </li>
+                {% endfor %}
+            </ul>
+        {% else %}
+            <p>No se han registrado pagos.</p>
+        {% endif %}
+    {% elif request.method == 'POST' %}
+        <hr>
+        <p style="color:red;">⚠️ No se encontró ningún estudiante con ese documento.</p>
+    {% endif %}
+
+    <p><a href="{{ url_for('index') }}">🏠 Volver al inicio</a></p>
+</body>
+</html>
