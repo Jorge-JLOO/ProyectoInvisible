@@ -128,30 +128,31 @@ def payment():
         metodo = request.form.get('metodo','').strip()
         telefono = request.form.get('telefono','').strip()
 
+        # Validar número
         try:
             valor_f = float(valor)
         except ValueError:
             flash('Valor inválido','danger')
             return redirect(url_for('payment'))
 
+        # Validar campos obligatorios
         if not nombre or not documento or not metodo:
             flash('Nombre, documento y método son obligatorios','danger')
             return redirect(url_for('payment'))
 
-        try:
-            estudiante = Estudiante.query.filter_by(documento=documento).first()
-            if not estudiante:
-                estudiante = Estudiante(nombre=nombre, documento=documento, telefono=telefono)
-                db.session.add(estudiante)
-                db.session.commit()
-        except IntegrityError:
-            db.session.rollback()
-            estudiante = Estudiante.query.filter_by(documento=documento).first()
+        # Buscar o crear estudiante
+        estudiante = Estudiante.query.filter_by(documento=documento).first()
+        if not estudiante:
+            estudiante = Estudiante(nombre=nombre, documento=documento, telefono=telefono)
+            db.session.add(estudiante)
+            db.session.commit()
 
+        # Registrar el pago
         pago = Pago(estudiante_id=estudiante.id, valor=valor_f, metodo=metodo)
         db.session.add(pago)
         db.session.commit()
 
+        # Generar factura PDF
         buffer = BytesIO()
         c = canvas.Canvas(buffer, pagesize=letter)
         c.setFont("Helvetica-Bold", 14)
@@ -167,10 +168,11 @@ def payment():
         c.showPage()
         c.save()
         buffer.seek(0)
+
         return send_file(buffer, as_attachment=True, download_name=f'factura_{pago.id}.pdf', mimetype='application/pdf')
 
+    # GET → mostrar formulario
     return render_template('payment.html')
-
 # --- Consulta pública por documento ---
 @app.route('/consulta', methods=['GET','POST'])
 def consulta():

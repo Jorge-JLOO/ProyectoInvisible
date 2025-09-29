@@ -1,11 +1,10 @@
 {% extends "base.html" %}
-{% extends "base.html" %}
 {% block title %}Registro de Pagos - Proyecto Educativo{% endblock %}
 
 {% block content %}
 <h2 class="mb-4 text-center"><i class="fa fa-money-bill-wave"></i> Registro de Pago</h2>
 
-<div class="card shadow-sm p-4">
+<div class="card shadow-sm p-4 bg-white rounded">
   <form method="POST">
     <div class="row">
       <div class="col-md-6 mb-3">
@@ -32,15 +31,15 @@
         <label class="form-label">Método de pago</label>
         <select class="form-select" name="metodo" required>
           <option value="">Seleccione...</option>
-          <option>Tarjeta</option>
-          <option>Efectivo</option>
-          <option>Transferencia</option>
+          <option value="Tarjeta">Tarjeta</option>
+          <option value="Efectivo">Efectivo</option>
+          <option value="Transferencia">Transferencia</option>
         </select>
       </div>
     </div>
 
     <div class="d-grid">
-      <button class="btn btn-primary" type="submit">
+      <button class="btn btn-success btn-lg" type="submit">
         <i class="fa fa-file-invoice"></i> Generar Factura (PDF)
       </button>
     </div>
