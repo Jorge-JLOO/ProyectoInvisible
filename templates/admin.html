@@ -1,145 +1,166 @@
 {% extends "base.html" %}
-{% block title %}Panel de administración - Proyecto Educativo{% endblock %}
+{% block title %}Administración{% endblock %}
 
 {% block content %}
-<h2 class="mb-4"><i class="fa fa-cogs"></i> Panel de Administración</h2>
+<div class="card shadow p-4">
+    <h3 class="mb-4"><i class="fa fa-cogs"></i> Panel de Administración</h3>
 
-<style>
-  /* Botones cuadrados del mismo tamaño */
-  .btn-square {
-    width: 40px;
-    height: 40px;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    padding: 0;
-  }
-</style>
+    <!-- Navegación con pestañas -->
+    <ul class="nav nav-tabs" id="adminTabs" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="estudiantes-tab" data-bs-toggle="tab" data-bs-target="#estudiantes" type="button" role="tab">
+                <i class="fa fa-users"></i> Estudiantes
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="matriculas-tab" data-bs-toggle="tab" data-bs-target="#matriculas" type="button" role="tab">
+                <i class="fa fa-book"></i> Matrículas
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="pagos-tab" data-bs-toggle="tab" data-bs-target="#pagos" type="button" role="tab">
+                <i class="fa fa-credit-card"></i> Pagos
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="deudas-tab" data-bs-toggle="tab" data-bs-target="#deudas" type="button" role="tab">
+                <i class="fa fa-money-bill"></i> Deudas
+            </button>
+        </li>
+    </ul>
 
-<div class="row">
-  <!-- Estudiantes -->
-  <div class="col-lg-6">
-    <div class="card shadow-sm mb-4">
-      <div class="card-header bg-primary text-white">
-        <i class="fa fa-users"></i> Estudiantes
-      </div>
-      <div class="card-body">
-        <!-- Formulario de nuevo estudiante -->
-        <form action="{{ url_for('crear_estudiante') }}" method="POST" class="mb-3">
-          <div class="row g-2">
-            <div class="col-md-4">
-              <input name="nombre" class="form-control" placeholder="Nombre" required>
-            </div>
-            <div class="col-md-4">
-              <input name="documento" class="form-control" placeholder="Documento" required>
-            </div>
-            <div class="col-md-3">
-              <input name="telefono" class="form-control" placeholder="Teléfono">
-            </div>
-            <div class="col-md-1 d-grid">
-              <button class="btn btn-success"><i class="fa fa-plus"></i></button>
-            </div>
-          </div>
-        </form>
+    <!-- Contenido de pestañas -->
+    <div class="tab-content mt-3" id="adminTabsContent">
 
-        <!-- Lista de estudiantes -->
-        <div class="table-responsive">
-          <table class="table table-striped table-hover align-middle">
-            <thead class="table-light">
-              <tr>
-                <th>Nombre</th>
-                <th>Documento</th>
-                <th>Teléfono</th>
-                <th>Estado</th>
-                <th class="text-center">Acciones</th>
-              </tr>
-            </thead>
-            <tbody>
-              {% for est in estudiantes %}
-              <tr>
-                <td>{{ est.nombre }}</td>
-                <td>{{ est.documento }}</td>
-                <td>{{ est.telefono or "-" }}</td>
-                <td>
-                  {% if est.activo %}
-                    <span class="badge bg-success">Activo</span>
-                  {% else %}
-                    <span class="badge bg-danger">Inactivo</span>
-                  {% endif %}
-                </td>
-                <td class="text-center">
-                  <div class="d-flex justify-content-center align-items-center gap-2">
-                    <!-- Botón editar -->
-                    <a href="{{ url_for('editar_estudiante', id=est.id) }}"
-                       class="btn btn-sm btn-warning btn-square"
-                       title="Editar">
-                      <i class="fa fa-edit"></i>
-                    </a>
+        <!-- Estudiantes -->
+        <div class="tab-pane fade show active" id="estudiantes" role="tabpanel">
+            <h5>👨‍🎓 Lista de Estudiantes</h5>
+            <form method="POST" action="{{ url_for('crear_estudiante') }}" class="row g-2 mb-3">
+                <div class="col-md-3"><input type="text" name="nombre" class="form-control" placeholder="Nombre" required></div>
+                <div class="col-md-3"><input type="text" name="documento" class="form-control" placeholder="Documento" required></div>
+                <div class="col-md-3"><input type="text" name="telefono" class="form-control" placeholder="Teléfono"></div>
+                <div class="col-md-3"><button type="submit" class="btn btn-success w-100"><i class="fa fa-plus"></i> Crear</button></div>
+            </form>
 
-                    <!-- Botón activar/inactivar -->
-                    <form action="{{ url_for('toggle_estudiante', id=est.id) }}"
-                          method="POST"
-                          class="d-inline mb-0">
-                      {% if est.activo %}
-                        <button class="btn btn-sm btn-danger btn-square" title="Inactivar">
-                          <i class="fa fa-ban"></i>
-                        </button>
-                      {% else %}
-                        <button class="btn btn-sm btn-success btn-square" title="Activar">
-                          <i class="fa fa-check"></i>
-                        </button>
-                      {% endif %}
-                    </form>
-                  </div>
-                </td>                
-              </tr>
-              {% else %}
-              <tr>
-                <td colspan="5" class="text-center text-muted">No hay estudiantes registrados</td>
-              </tr>
-              {% endfor %}
-            </tbody>
-          </table>
+            <table class="table table-striped table-hover">
+                <thead class="table-primary">
+                    <tr>
+                        <th>Nombre</th>
+                        <th>Documento</th>
+                        <th>Teléfono</th>
+                        <th>Estado</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                {% for estudiante in estudiantes %}
+                    <tr>
+                        <td>{{ estudiante.nombre }}</td>
+                        <td>{{ estudiante.documento }}</td>
+                        <td>{{ estudiante.telefono or 'N/A' }}</td>
+                        <td>
+                            {% if estudiante.activo %}
+                                <span class="badge bg-success">Activo</span>
+                            {% else %}
+                                <span class="badge bg-danger">Inactivo</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <a href="{{ url_for('editar_estudiante', id=estudiante.id) }}" class="btn btn-warning btn-sm">
+                                <i class="fa fa-edit"></i> Editar
+                            </a>
+                            <form action="{{ url_for('toggle_estudiante', id=estudiante.id) }}" method="POST" class="d-inline">
+                                <button type="submit" class="btn btn-secondary btn-sm">
+                                    {% if estudiante.activo %} Inactivar {% else %} Activar {% endif %}
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
         </div>
-      </div>
-    </div>
-  </div>
 
-  <!-- Pagos -->
-  <div class="col-lg-6">
-    <div class="card shadow-sm mb-4">
-      <div class="card-header bg-success text-white">
-        <i class="fa fa-credit-card"></i> Pagos recientes
-      </div>
-      <div class="card-body">
-        <div class="table-responsive">
-          <table class="table table-sm table-hover align-middle">
-            <thead class="table-light">
-              <tr>
-                <th>Fecha</th>
-                <th>Documento</th>
-                <th>Valor</th>
-                <th>Método</th>
-              </tr>
-            </thead>
-            <tbody>
-              {% for p in pagos %}
-              <tr>
-                <td>{{ p.fecha.strftime('%Y-%m-%d') }}</td>
-                <td>{{ p.estudiante.documento }}</td>
-                <td>${{ "%.2f"|format(p.valor) }}</td>
-                <td>{{ p.metodo }}</td>
-              </tr>
-              {% else %}
-              <tr>
-                <td colspan="4" class="text-center text-muted">No hay pagos registrados</td>
-              </tr>
-              {% endfor %}
-            </tbody>
-          </table>
+        <!-- Matrículas -->
+        <div class="tab-pane fade" id="matriculas" role="tabpanel">
+            <h5>📘 Matrículas Registradas</h5>
+            <table class="table table-striped">
+                <thead class="table-primary">
+                    <tr>
+                        <th>Estudiante</th>
+                        <th>Curso</th>
+                        <th>Fecha</th>
+                    </tr>
+                </thead>
+                <tbody>
+                {% for matricula in matriculas %}
+                    <tr>
+                        <td>{{ matricula.estudiante.nombre }}</td>
+                        <td>{{ matricula.curso }}</td>
+                        <td>{{ matricula.fecha.strftime('%Y-%m-%d') }}</td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
         </div>
-      </div>
+
+        <!-- Pagos -->
+        <div class="tab-pane fade" id="pagos" role="tabpanel">
+            <h5>💰 Historial de Pagos</h5>
+            <table class="table table-striped">
+                <thead class="table-primary">
+                    <tr>
+                        <th>Estudiante</th>
+                        <th>Documento</th>
+                        <th>Monto</th>
+                        <th>Método</th>
+                        <th>Fecha</th>
+                    </tr>
+                </thead>
+                <tbody>
+                {% for pago in pagos %}
+                    <tr>
+                        <td>{{ pago.estudiante.nombre }}</td>
+                        <td>{{ pago.estudiante.documento }}</td>
+                        <td>${{ "{:,.2f}".format(pago.valor) }}</td>
+                        <td>{{ pago.metodo }}</td>
+                        <td>{{ pago.fecha.strftime('%Y-%m-%d %H:%M') }}</td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Deudas -->
+        <div class="tab-pane fade" id="deudas" role="tabpanel">
+            <h5>📌 Deudas Pendientes</h5>
+            <table class="table table-striped">
+                <thead class="table-primary">
+                    <tr>
+                        <th>Estudiante</th>
+                        <th>Concepto</th>
+                        <th>Monto Total</th>
+                        <th>Saldo Pendiente</th>
+                    </tr>
+                </thead>
+                <tbody>
+                {% for deuda in deudas %}
+                    <tr>
+                        <td>{{ deuda.estudiante.nombre }}</td>
+                        <td>{{ deuda.concepto }}</td>
+                        <td>${{ "{:,.2f}".format(deuda.monto_total) }}</td>
+                        <td>
+                            {% if deuda.saldo_pendiente > 0 %}
+                                <span class="text-danger">${{ "{:,.2f}".format(deuda.saldo_pendiente) }}</span>
+                            {% else %}
+                                <span class="text-success">✔ Pagado</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
     </div>
-  </div>
 </div>
 {% endblock %}

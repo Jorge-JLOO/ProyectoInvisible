@@ -1,53 +1,86 @@
 {% extends "base.html" %}
-{% block title %}Registro de Pagos - Proyecto Educativo{% endblock %}
+{% block title %}Pagos{% endblock %}
 
 {% block content %}
-<h2 class="mb-4 text-center"><i class="fa fa-money-bill-wave"></i> Registro de Pago</h2>
+<div class="card shadow p-4">
+    <h3 class="mb-4"><i class="fa fa-credit-card"></i> Registro de Pagos</h3>
 
-<div class="card shadow-sm p-4">
-  <form method="POST">
-    <div class="row">
-      <div class="col-md-6 mb-3">
-        <label class="form-label">Nombre</label>
-        <input class="form-control" name="nombre" placeholder="Nombre del estudiante" required>
-      </div>
-      <div class="col-md-6 mb-3">
-        <label class="form-label">Documento</label>
-        <input class="form-control" name="documento" placeholder="Cédula o documento" required>
-      </div>
-    </div>
+    <!-- Buscar estudiante por documento -->
+    <form method="POST" action="{{ url_for('payment') }}" class="row g-3 mb-4">
+        <div class="col-md-6">
+            <input type="text" name="documento" class="form-control" placeholder="Ingrese documento del estudiante" required>
+        </div>
+        <div class="col-md-3">
+            <button type="submit" class="btn btn-primary w-100">
+                <i class="fa fa-search"></i> Buscar
+            </button>
+        </div>
+    </form>
 
-    <div class="mb-3">
-      <label class="form-label">Teléfono (opcional)</label>
-      <input class="form-control" name="telefono" placeholder="Número de contacto">
-    </div>
+    {% if estudiante %}
+        <div class="alert alert-info">
+            <h5><i class="fa fa-user"></i> {{ estudiante.nombre }}</h5>
+            <p><strong>Documento:</strong> {{ estudiante.documento }}</p>
+            <p><strong>Teléfono:</strong> {{ estudiante.telefono or 'N/A' }}</p>
+        </div>
 
-    <div class="row">
-      <div class="col-md-6 mb-3">
-        <label class="form-label">Valor</label>
-        <input class="form-control" name="valor" type="number" step="0.01" placeholder="0.00" required>
-      </div>
-      <div class="col-md-6 mb-3">
-        <label class="form-label">Método de pago</label>
-        <select class="form-select" name="metodo" required>
-          <option value="">Seleccione...</option>
-          <option>Efectivo</option>
-          <option>Transferencia</option>
-        </select>
-      </div>
-    </div>
+        <h5 class="mt-4">📌 Deudas pendientes</h5>
+        {% if deudas %}
+            <table class="table table-bordered table-hover mt-2">
+                <thead class="table-primary">
+                    <tr>
+                        <th>Concepto</th>
+                        <th>Monto Total</th>
+                        <th>Saldo Pendiente</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for deuda in deudas %}
+                        <tr>
+                            <td>{{ deuda.concepto }}</td>
+                            <td>${{ "{:,.2f}".format(deuda.monto_total) }}</td>
+                            <td>${{ "{:,.2f}".format(deuda.saldo_pendiente) }}</td>
+                            <td>
+                                <!-- Pago total -->
+                                <form method="POST" action="{{ url_for('registrar_pago', deuda_id=deuda.id) }}" class="d-inline">
+                                    <input type="hidden" name="valor" value="{{ deuda.saldo_pendiente }}">
+                                    <input type="hidden" name="metodo" value="Efectivo">
+                                    <button type="submit" class="btn btn-success btn-sm">
+                                        <i class="fa fa-check"></i> Pagar Total
+                                    </button>
+                                </form>
 
-    <div class="d-grid gap-2">
-      <!-- Botón normal que genera el PDF -->
-      <button class="btn btn-success" type="submit">
-        <i class="fa fa-file-invoice"></i> Generar Factura (PDF)
-      </button>
+                                <!-- Pago parcial -->
+                                <button class="btn btn-warning btn-sm" data-bs-toggle="collapse" data-bs-target="#pagoParcial{{ deuda.id }}">
+                                    <i class="fa fa-edit"></i> Pago Parcial
+                                </button>
 
-      <!-- Botón futuro para pagos online -->
-      <button class="btn btn-primary" type="button" onclick="alert('🚧 Pagos online estarán disponibles próximamente 🚀');">
-        <i class="fa fa-credit-card"></i> Pagar Online (Próximamente)
-      </button>
-    </div>
-  </form>
+                                <div id="pagoParcial{{ deuda.id }}" class="collapse mt-2">
+                                    <form method="POST" action="{{ url_for('registrar_pago', deuda_id=deuda.id) }}">
+                                        <div class="input-group">
+                                            <input type="number" name="valor" min="1" max="{{ deuda.saldo_pendiente }}" class="form-control" placeholder="Monto a pagar" required>
+                                            <select name="metodo" class="form-select" required>
+                                                <option value="Efectivo">Efectivo</option>
+                                                <option value="Transferencia">Transferencia</option>
+                                                <option value="Tarjeta">Tarjeta</option>
+                                            </select>
+                                            <button type="submit" class="btn btn-primary">
+                                                <i class="fa fa-save"></i> Registrar
+                                            </button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <div class="alert alert-success">
+                ✅ Este estudiante no tiene deudas pendientes.
+            </div>
+        {% endif %}
+    {% endif %}
 </div>
 {% endblock %}

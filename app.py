@@ -7,9 +7,7 @@ from io import BytesIO
 from reportlab.lib.pagesizes import letter
 from reportlab.pdfgen import canvas
 from werkzeug.security import generate_password_hash, check_password_hash
-import requests
-import uuid
-import os
+import os, uuid, requests
 
 # --- Configuración básica ---
 app = Flask(__name__)
@@ -49,6 +47,15 @@ class Matricula(db.Model):
     fecha = db.Column(db.DateTime, default=datetime.utcnow)
     estudiante = db.relationship('Estudiante', backref=db.backref('matriculas', lazy=True))
 
+class Deuda(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    estudiante_id = db.Column(db.Integer, db.ForeignKey('estudiante.id'), nullable=False)
+    concepto = db.Column(db.String(100), nullable=False)
+    monto_total = db.Column(db.Float, nullable=False)
+    saldo_pendiente = db.Column(db.Float, nullable=False)
+    fecha = db.Column(db.DateTime, default=datetime.utcnow)
+    estudiante = db.relationship('Estudiante', backref=db.backref('deudas', lazy=True))
+
 class Pago(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     estudiante_id = db.Column(db.Integer, db.ForeignKey('estudiante.id'), nullable=False)
@@ -74,14 +81,12 @@ def login():
     if request.method == 'POST':
         username = request.form['username']
         password = request.form['password']
-
         user = Usuario.query.filter_by(username=username).first()
         if user and check_password_hash(user.password, password):
             login_user(user)
             return redirect(url_for('admin'))
         else:
             flash("Usuario o contraseña incorrectos", "danger")
-
     return render_template('login.html')
 
 @app.route('/logout')
@@ -113,10 +118,14 @@ def enrollment():
                 flash('El documento ya existe en el sistema','danger')
                 return redirect(url_for('enrollment'))
 
+        # crear deuda inicial (ejemplo $1,000,000)
+        deuda = Deuda(estudiante_id=estudiante.id, concepto=f"Curso {curso}", monto_total=1000000, saldo_pendiente=1000000)
+        db.session.add(deuda)
+
         matricula = Matricula(estudiante_id=estudiante.id, curso=curso)
         db.session.add(matricula)
         db.session.commit()
-        flash('Matrícula registrada correctamente','success')
+        flash('Matrícula registrada correctamente con deuda inicial','success')
         return redirect(url_for('index'))
 
     return render_template('enrollment.html')
@@ -124,52 +133,54 @@ def enrollment():
 # --- Payment ---
 @app.route('/payment', methods=['GET','POST'])
 def payment():
+    estudiante = None
+    deudas = []
     if request.method == 'POST':
-        nombre = request.form.get('nombre','').strip()
         documento = request.form.get('documento','').strip()
-        valor = request.form.get('valor','0').strip()
-        metodo = request.form.get('metodo','').strip()
-        telefono = request.form.get('telefono','').strip()
-
-        try:
-            valor_f = float(valor)
-        except ValueError:
-            flash('Valor inválido','danger')
-            return redirect(url_for('payment'))
-
-        if not nombre or not documento or not metodo:
-            flash('Nombre, documento y método son obligatorios','danger')
-            return redirect(url_for('payment'))
-
         estudiante = Estudiante.query.filter_by(documento=documento).first()
         if not estudiante:
-            estudiante = Estudiante(nombre=nombre, documento=documento, telefono=telefono)
-            db.session.add(estudiante)
-            db.session.commit()
+            flash("❌ No se encontró estudiante con ese documento","danger")
+            return redirect(url_for('payment'))
+        deudas = Deuda.query.filter_by(estudiante_id=estudiante.id).all()
 
-        pago = Pago(estudiante_id=estudiante.id, valor=valor_f, metodo=metodo)
-        db.session.add(pago)
-        db.session.commit()
+    return render_template('payment.html', estudiante=estudiante, deudas=deudas)
 
-        buffer = BytesIO()
-        c = canvas.Canvas(buffer, pagesize=letter)
-        c.setFont("Helvetica-Bold", 14)
-        c.drawCentredString(300, 760, "Factura de Pago - Proyecto Educativo")
-        c.setFont("Helvetica", 11)
-        c.drawString(50, 720, f"Factura ID: {pago.id}")
-        c.drawString(50, 700, f"Fecha: {pago.fecha.strftime('%Y-%m-%d %H:%M:%S')}")
-        c.drawString(50, 680, f"Nombre: {estudiante.nombre}")
-        c.drawString(50, 660, f"Documento: {estudiante.documento}")
-        c.drawString(50, 640, f"Teléfono: {estudiante.telefono or ''}")
-        c.drawString(50, 620, f"Método de pago: {pago.metodo}")
-        c.drawString(50, 600, f"Valor: ${pago.valor:,.2f}")
-        c.showPage()
-        c.save()
-        buffer.seek(0)
+@app.route('/registrar_pago/<int:deuda_id>', methods=['POST'])
+def registrar_pago(deuda_id):
+    deuda = Deuda.query.get_or_404(deuda_id)
+    valor = float(request.form.get('valor','0'))
+    metodo = request.form.get('metodo','').strip()
 
-        return send_file(buffer, as_attachment=True, download_name=f'factura_{pago.id}.pdf', mimetype='application/pdf')
+    if valor <= 0 or valor > deuda.saldo_pendiente:
+        flash("⚠️ El valor ingresado no es válido","warning")
+        return redirect(url_for('payment'))
 
-    return render_template('payment.html')
+    # registrar pago
+    pago = Pago(estudiante_id=deuda.estudiante_id, valor=valor, metodo=metodo)
+    db.session.add(pago)
+
+    # actualizar deuda
+    deuda.saldo_pendiente -= valor
+    db.session.commit()
+
+    # generar factura
+    buffer = BytesIO()
+    c = canvas.Canvas(buffer, pagesize=letter)
+    c.setFont("Helvetica-Bold", 14)
+    c.drawCentredString(300, 760, "Factura de Pago - Proyecto Educativo")
+    c.setFont("Helvetica", 11)
+    c.drawString(50, 720, f"Factura ID: {pago.id}")
+    c.drawString(50, 700, f"Fecha: {pago.fecha.strftime('%Y-%m-%d %H:%M:%S')}")
+    c.drawString(50, 680, f"Nombre: {pago.estudiante.nombre}")
+    c.drawString(50, 660, f"Documento: {pago.estudiante.documento}")
+    c.drawString(50, 640, f"Método de pago: {pago.metodo}")
+    c.drawString(50, 620, f"Valor pagado: ${pago.valor:,.2f}")
+    c.drawString(50, 600, f"Saldo restante deuda: ${deuda.saldo_pendiente:,.2f}")
+    c.showPage()
+    c.save()
+    buffer.seek(0)
+
+    return send_file(buffer, as_attachment=True, download_name=f'factura_{pago.id}.pdf', mimetype='application/pdf')
 
 # --- Consulta (protegida) ---
 @app.route('/consulta', methods=['GET','POST'])
@@ -188,47 +199,10 @@ def admin():
     estudiantes = Estudiante.query.order_by(Estudiante.nombre).all()
     matriculas = Matricula.query.order_by(Matricula.fecha.desc()).all()
     pagos = Pago.query.order_by(Pago.fecha.desc()).all()
-    return render_template('admin.html', estudiantes=estudiantes, matriculas=matriculas, pagos=pagos)
+    deudas = Deuda.query.order_by(Deuda.fecha.desc()).all()
+    return render_template('admin.html', estudiantes=estudiantes, matriculas=matriculas, pagos=pagos, deudas=deudas)
 
-@app.route('/admin/estudiante/<int:id>/editar', methods=['GET', 'POST'])
-@login_required
-def editar_estudiante(id):
-    estudiante = Estudiante.query.get_or_404(id)
-    if request.method == 'POST':
-        estudiante.nombre = request.form['nombre']
-        estudiante.documento = request.form['documento']
-        estudiante.telefono = request.form['telefono']
-        db.session.commit()
-        flash('Estudiante actualizado correctamente', 'success')
-        return redirect(url_for('admin'))
-    return render_template('editar_estudiante.html', estudiante=estudiante)
-
-@app.route('/admin/crear_estudiante', methods=['POST'])
-@login_required
-def crear_estudiante():
-    nombre = request.form['nombre']
-    documento = request.form['documento']
-    telefono = request.form.get('telefono')
-    if not nombre or not documento:
-        flash("Nombre y documento son obligatorios", "danger")
-        return redirect(url_for('admin'))
-    nuevo = Estudiante(nombre=nombre, documento=documento, telefono=telefono)
-    db.session.add(nuevo)
-    db.session.commit()
-    flash("Estudiante creado correctamente", "success")
-    return redirect(url_for('admin'))
-
-@app.route('/admin/estudiante/<int:id>/toggle', methods=['POST'])
-@login_required
-def toggle_estudiante(id):
-    estudiante = Estudiante.query.get_or_404(id)
-    estudiante.activo = not estudiante.activo
-    db.session.commit()
-    estado = "activado" if estudiante.activo else "inactivado"
-    flash(f'Estudiante {estado} correctamente', 'info')
-    return redirect(url_for('admin'))
-
-# --- Cambiar contraseña (protegida) ---
+# --- Cambiar contraseña ---
 @app.route('/cambiar_password', methods=['GET', 'POST'])
 @login_required
 def cambiar_password():
@@ -251,114 +225,6 @@ def cambiar_password():
         return redirect(url_for('admin'))
 
     return render_template('cambiar_password.html')
-
-# --- Pago en efectivo ---
-@app.route('/pago_efectivo', methods=['GET','POST'])
-def pago_efectivo():
-    if request.method == 'POST':
-        nombre = request.form.get('nombre','').strip()
-        documento = request.form.get('documento','').strip()
-        valor = request.form.get('valor','0').strip()
-        metodo = request.form.get('metodo','').strip()
-        telefono = request.form.get('telefono','').strip()
-
-        try:
-            valor_f = float(valor)
-        except ValueError:
-            flash('Valor inválido','danger')
-            return redirect(url_for('pago_efectivo'))
-
-        if not nombre or not documento or not metodo:
-            flash('Nombre, documento y método son obligatorios','danger')
-            return redirect(url_for('pago_efectivo'))
-
-        estudiante = Estudiante.query.filter_by(documento=documento).first()
-        if not estudiante:
-            try:
-                estudiante = Estudiante(nombre=nombre, documento=documento, telefono=telefono)
-                db.session.add(estudiante)
-                db.session.commit()
-            except IntegrityError:
-                db.session.rollback()
-                estudiante = Estudiante.query.filter_by(documento=documento).first()
-
-        pago = Pago(estudiante_id=estudiante.id, valor=valor_f, metodo=metodo)
-        db.session.add(pago)
-        db.session.commit()
-
-        buffer = BytesIO()
-        c = canvas.Canvas(buffer, pagesize=letter)
-        c.setFont("Helvetica-Bold", 14)
-        c.drawCentredString(300, 760, "Factura de Pago - Proyecto Educativo")
-        c.setFont("Helvetica", 11)
-        c.drawString(50, 720, f"Factura ID: {pago.id}")
-        c.drawString(50, 700, f"Fecha: {pago.fecha.strftime('%Y-%m-%d %H:%M:%S')}")
-        c.drawString(50, 680, f"Nombre: {estudiante.nombre}")
-        c.drawString(50, 660, f"Documento: {estudiante.documento}")
-        c.drawString(50, 640, f"Teléfono: {estudiante.telefono or ''}")
-        c.drawString(50, 620, f"Método de pago: {pago.metodo}")
-        c.drawString(50, 600, f"Valor: ${pago.valor:,.2f}")
-        c.showPage()
-        c.save()
-        buffer.seek(0)
-        return send_file(buffer, as_attachment=True,
-                         download_name=f'factura_{pago.id}.pdf',
-                         mimetype='application/pdf')
-
-    return render_template("pago_efectivo.html")
-
-# --- Pago online con Wompi ---
-@app.route('/pago_online', methods=['GET', 'POST'])
-def pago_online():
-    if request.method == 'POST':
-        nombre = request.form.get('nombre')
-        documento = request.form.get('documento')
-        valor = request.form.get('valor')
-
-        try:
-            valor_f = float(valor)
-        except ValueError:
-            flash("Monto inválido", "danger")
-            return redirect(url_for("pago_online"))
-
-        estudiante = Estudiante.query.filter_by(documento=documento).first()
-        if not estudiante:
-            estudiante = Estudiante(nombre=nombre, documento=documento)
-            db.session.add(estudiante)
-            db.session.commit()
-
-        pago = Pago(estudiante_id=estudiante.id, valor=valor_f, metodo="Wompi")
-        db.session.add(pago)
-        db.session.commit()
-
-        reference = str(uuid.uuid4())
-        amount_in_cents = int(valor_f * 100)
-
-        headers = {"Authorization": f"Bearer {os.environ.get('WOMPI_PRIVATE_KEY')}"}
-        data = {
-            "amount_in_cents": amount_in_cents,
-            "currency": "COP",
-            "customer_email": "correo@demo.com",
-            "payment_method_types": ["PSE", "CARD", "NEQUI"],
-            "redirect_url": url_for("confirmacion_pago", _external=True),
-            "reference": reference
-        }
-
-        r = requests.post("https://sandbox.wompi.co/v1/transactions", json=data, headers=headers)
-        if r.status_code == 201 and "data" in r.json():
-            checkout_url = r.json()["data"].get("payment_link")
-            if checkout_url:
-                return redirect(checkout_url)
-
-        flash("Error al conectar con Wompi", "danger")
-        return redirect(url_for("pago_online"))
-
-    return render_template("pago_online.html")
-
-@app.route('/confirmacion_pago')
-def confirmacion_pago():
-    flash("✅ Gracias, tu pago está siendo procesado", "success")
-    return redirect(url_for("index"))
 
 # --- MAIN ---
 if __name__ == '__main__':
