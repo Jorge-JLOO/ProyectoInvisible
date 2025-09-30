@@ -18,65 +18,67 @@
 <body class="d-flex flex-column min-vh-100">
 
     <!-- Navbar -->
-    <nav class="navbar navbar-expand-lg navbar-dark bg-primary shadow-sm">
-        <div class="container">
-            <a class="navbar-brand fw-bold" href="{{ url_for('index') }}">
-                <i class="fa-solid fa-graduation-cap"></i> Proyecto Educativo
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+  <div class="container-fluid">
+    <a class="navbar-brand" href="{{ url_for('index') }}">
+      <i class="fa fa-graduation-cap"></i> Proyecto Educativo
+    </a>
+    <!-- Botón hamburguesa -->
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+
+    <!-- Menú colapsable -->
+    <div class="collapse navbar-collapse justify-content-center" id="navbarNav">
+      <ul class="navbar-nav text-center gap-2">
+        <li class="nav-item">
+          <a class="btn btn-grad-red btn-nav" href="{{ url_for('index') }}">
+            <i class="fa fa-home"></i> Inicio
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="btn btn-grad-green btn-nav" href="{{ url_for('enrollment') }}">
+            <i class="fa fa-user-plus"></i> Matrículas
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="btn btn-grad-blue btn-nav" href="{{ url_for('payment') }}">
+            <i class="fa fa-credit-card"></i> Pagos
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="btn btn-grad-yellow btn-nav" href="{{ url_for('consulta') }}">
+            <i class="fa fa-search"></i> Consulta
+          </a>
+        </li>
+
+        {% if current_user.is_authenticated %}
+          <li class="nav-item">
+            <a class="btn btn-dark btn-nav" href="{{ url_for('admin') }}">
+              <i class="fa fa-cogs"></i> Administración
             </a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav ms-auto">
-                    <li class="nav-item">
-                        <a class="btn btn-grad btn-nav" href="{{ url_for('index') }}">
-                            <i class="fa fa-home"></i> Inicio
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="btn btn-grad-green btn-nav" href="{{ url_for('enrollment') }}">
-                            <i class="fa fa-user-plus"></i> Matrículas
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="btn btn-grad-blue btn-nav" href="{{ url_for('payment') }}">
-                            <i class="fa fa-credit-card"></i> Pagos
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="btn btn-grad-orange btn-nav" href="{{ url_for('consulta') }}">
-                            <i class="fa fa-search"></i> Consulta
-                        </a>
-                    </li>
-
-                    {% if current_user.is_authenticated %}
-                        <li class="nav-item">
-                            <a class="btn btn-grad-dark btn-nav" href="{{ url_for('admin') }}">
-                                <i class="fa fa-cogs"></i> Administración
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="btn btn-grad-orange btn-nav" href="{{ url_for('cambiar_password') }}">
-                                <i class="fa fa-key"></i> Cambiar contraseña
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="btn btn-grad btn-nav" href="{{ url_for('logout') }}">
-                                <i class="fa fa-sign-out-alt"></i> Salir
-                            </a>
-                        </li>
-                    {% else %}
-                        <li class="nav-item">
-                            <a class="btn btn-grad-blue btn-nav" href="{{ url_for('login') }}">
-                                <i class="fa fa-sign-in-alt"></i> Iniciar sesión
-                            </a>
-                        </li>
-                    {% endif %}
-                </ul>
-            </div>
-        </div>
-    </nav>
+          </li>
+          <li class="nav-item">
+            <a class="btn btn-grad-orange btn-nav" href="{{ url_for('cambiar_password') }}">
+              <i class="fa fa-key"></i> Cambiar contraseña
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="btn btn-grad-pink btn-nav" href="{{ url_for('logout') }}">
+              <i class="fa fa-sign-out-alt"></i> Salir
+            </a>
+          </li>
+        {% else %}
+          <li class="nav-item">
+            <a class="btn btn-grad-blue btn-nav" href="{{ url_for('login') }}">
+              <i class="fa fa-sign-in-alt"></i> Iniciar sesión
+            </a>
+          </li>
+        {% endif %}
+      </ul>
+    </div>
+  </div>
+</nav>
 
     <!-- Contenido principal -->
     <main class="container my-4 flex-grow-1">
