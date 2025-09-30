@@ -11,7 +11,6 @@ import requests
 import uuid
 import os
 
-
 # --- Configuración básica ---
 app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY', 'devsecretkey')
@@ -23,6 +22,7 @@ db = SQLAlchemy(app)
 # --- Login Manager ---
 login_manager = LoginManager(app)
 login_manager.login_view = 'login'
+login_manager.login_message = "⚠️ Debes iniciar sesión para acceder a esta sección"
 
 # --- Modelos ---
 class Usuario(UserMixin, db.Model):
@@ -131,31 +131,26 @@ def payment():
         metodo = request.form.get('metodo','').strip()
         telefono = request.form.get('telefono','').strip()
 
-        # Validar número
         try:
             valor_f = float(valor)
         except ValueError:
             flash('Valor inválido','danger')
             return redirect(url_for('payment'))
 
-        # Validar campos obligatorios
         if not nombre or not documento or not metodo:
             flash('Nombre, documento y método son obligatorios','danger')
             return redirect(url_for('payment'))
 
-        # Buscar o crear estudiante
         estudiante = Estudiante.query.filter_by(documento=documento).first()
         if not estudiante:
             estudiante = Estudiante(nombre=nombre, documento=documento, telefono=telefono)
             db.session.add(estudiante)
             db.session.commit()
 
-        # Registrar el pago
         pago = Pago(estudiante_id=estudiante.id, valor=valor_f, metodo=metodo)
         db.session.add(pago)
         db.session.commit()
 
-        # Generar factura PDF
         buffer = BytesIO()
         c = canvas.Canvas(buffer, pagesize=letter)
         c.setFont("Helvetica-Bold", 14)
@@ -174,11 +169,11 @@ def payment():
 
         return send_file(buffer, as_attachment=True, download_name=f'factura_{pago.id}.pdf', mimetype='application/pdf')
 
-    # GET → mostrar formulario
     return render_template('payment.html')
 
-# --- Consulta pública por documento ---
+# --- Consulta (protegida) ---
 @app.route('/consulta', methods=['GET','POST'])
+@login_required
 def consulta():
     estudiante = None
     if request.method == 'POST':
@@ -186,7 +181,7 @@ def consulta():
         estudiante = Estudiante.query.filter_by(documento=documento).first()
     return render_template('consulta.html', estudiante=estudiante)
 
-# --- Admin ---
+# --- Admin (protegida) ---
 @app.route('/admin')
 @login_required
 def admin():
@@ -233,7 +228,7 @@ def toggle_estudiante(id):
     flash(f'Estudiante {estado} correctamente', 'info')
     return redirect(url_for('admin'))
 
-# --- Cambiar contraseña ---
+# --- Cambiar contraseña (protegida) ---
 @app.route('/cambiar_password', methods=['GET', 'POST'])
 @login_required
 def cambiar_password():
@@ -291,7 +286,6 @@ def pago_efectivo():
         db.session.add(pago)
         db.session.commit()
 
-        # Generar factura en PDF
         buffer = BytesIO()
         c = canvas.Canvas(buffer, pagesize=letter)
         c.setFont("Helvetica-Bold", 14)
@@ -337,8 +331,8 @@ def pago_online():
         db.session.add(pago)
         db.session.commit()
 
-        reference = str(uuid.uuid4())  # referencia única
-        amount_in_cents = int(valor_f * 100)  # convertir a centavos
+        reference = str(uuid.uuid4())
+        amount_in_cents = int(valor_f * 100)
 
         headers = {"Authorization": f"Bearer {os.environ.get('WOMPI_PRIVATE_KEY')}"}
         data = {

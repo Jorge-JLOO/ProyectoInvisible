@@ -45,23 +45,25 @@
                         </a>
                     </li>
 
-                    <!-- Botones privados (solo admin autenticado) -->
+                    <!-- Botones privados (protección con login_required en app.py) -->
+                    <li class="nav-item">
+                        <a class="btn btn-grad-orange btn-nav w-100 mb-2 mb-lg-0" href="{{ url_for('consulta') }}">
+                            <i class="fa fa-search"></i> Consulta
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="btn btn-dark btn-nav w-100 mb-2 mb-lg-0" href="{{ url_for('admin') }}">
+                            <i class="fa fa-cogs"></i> Administración
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="btn btn-grad-orange btn-nav w-100 mb-2 mb-lg-0" href="{{ url_for('cambiar_password') }}">
+                            <i class="fa fa-key"></i> Cambiar contraseña
+                        </a>
+                    </li>
+
+                    <!-- Sesión -->
                     {% if current_user.is_authenticated %}
-                        <li class="nav-item">
-                            <a class="btn btn-grad-orange btn-nav w-100 mb-2 mb-lg-0" href="{{ url_for('consulta') }}">
-                                <i class="fa fa-search"></i> Consulta
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="btn btn-dark btn-nav w-100 mb-2 mb-lg-0" href="{{ url_for('admin') }}">
-                                <i class="fa fa-cogs"></i> Administración
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="btn btn-grad-orange btn-nav w-100 mb-2 mb-lg-0" href="{{ url_for('cambiar_password') }}">
-                                <i class="fa fa-key"></i> Cambiar contraseña
-                            </a>
-                        </li>
                         <li class="nav-item">
                             <a class="btn btn-grad btn-nav w-100 mb-2 mb-lg-0" href="{{ url_for('logout') }}">
                                 <i class="fa fa-sign-out-alt"></i> Salir
