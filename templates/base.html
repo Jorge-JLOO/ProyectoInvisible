@@ -13,8 +13,7 @@
 
     <!-- Estilos propios -->
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-
-   </head>
+</head>
 <body class="d-flex flex-column min-vh-100">
 
     <!-- Navbar -->
@@ -29,6 +28,7 @@
 
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav ms-auto gap-2">
+                    <!-- Botones públicos -->
                     <li class="nav-item">
                         <a class="btn btn-grad btn-nav w-100 mb-2 mb-lg-0" href="{{ url_for('index') }}">
                             <i class="fa fa-home"></i> Inicio
@@ -44,13 +44,14 @@
                             <i class="fa fa-credit-card"></i> Pagos
                         </a>
                     </li>
-                    <li class="nav-item">
-                        <a class="btn btn-grad-orange btn-nav w-100 mb-2 mb-lg-0" href="{{ url_for('consulta') }}">
-                            <i class="fa fa-search"></i> Consulta
-                        </a>
-                    </li>
 
+                    <!-- Botones privados (solo admin autenticado) -->
                     {% if current_user.is_authenticated %}
+                        <li class="nav-item">
+                            <a class="btn btn-grad-orange btn-nav w-100 mb-2 mb-lg-0" href="{{ url_for('consulta') }}">
+                                <i class="fa fa-search"></i> Consulta
+                            </a>
+                        </li>
                         <li class="nav-item">
                             <a class="btn btn-dark btn-nav w-100 mb-2 mb-lg-0" href="{{ url_for('admin') }}">
                                 <i class="fa fa-cogs"></i> Administración

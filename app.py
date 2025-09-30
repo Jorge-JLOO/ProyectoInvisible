@@ -179,12 +179,8 @@ def payment():
 
 # --- Consulta pública por documento ---
 @app.route('/consulta', methods=['GET','POST'])
+@login_required
 def consulta():
-    estudiante = None
-    if request.method == 'POST':
-        documento = request.form.get('documento')
-        estudiante = Estudiante.query.filter_by(documento=documento).first()
-    return render_template('consulta.html', estudiante=estudiante)
 
 # --- Admin ---
 @app.route('/admin')
