@@ -7,7 +7,9 @@ from io import BytesIO
 from reportlab.lib.pagesizes import letter
 from reportlab.pdfgen import canvas
 from werkzeug.security import generate_password_hash, check_password_hash
-import os, uuid, requests
+import requests
+import uuid
+import os
 
 # --- Configuración básica ---
 app = Flask(__name__)
@@ -47,15 +49,6 @@ class Matricula(db.Model):
     fecha = db.Column(db.DateTime, default=datetime.utcnow)
     estudiante = db.relationship('Estudiante', backref=db.backref('matriculas', lazy=True))
 
-class Deuda(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    estudiante_id = db.Column(db.Integer, db.ForeignKey('estudiante.id'), nullable=False)
-    concepto = db.Column(db.String(100), nullable=False)
-    monto_total = db.Column(db.Float, nullable=False)
-    saldo_pendiente = db.Column(db.Float, nullable=False)
-    fecha = db.Column(db.DateTime, default=datetime.utcnow)
-    estudiante = db.relationship('Estudiante', backref=db.backref('deudas', lazy=True))
-
 class Pago(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     estudiante_id = db.Column(db.Integer, db.ForeignKey('estudiante.id'), nullable=False)
@@ -63,6 +56,14 @@ class Pago(db.Model):
     metodo = db.Column(db.String(50), nullable=False)
     fecha = db.Column(db.DateTime, default=datetime.utcnow)
     estudiante = db.relationship('Estudiante', backref=db.backref('pagos', lazy=True))
+
+class Deuda(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    estudiante_id = db.Column(db.Integer, db.ForeignKey('estudiante.id'), nullable=False)
+    concepto = db.Column(db.String(100), nullable=False)
+    monto_total = db.Column(db.Float, nullable=False)
+    saldo_pendiente = db.Column(db.Float, nullable=False)
+    estudiante = db.relationship('Estudiante', backref=db.backref('deudas', lazy=True))
 
 # --- Context Processor ---
 @app.context_processor
@@ -81,12 +82,14 @@ def login():
     if request.method == 'POST':
         username = request.form['username']
         password = request.form['password']
+
         user = Usuario.query.filter_by(username=username).first()
         if user and check_password_hash(user.password, password):
             login_user(user)
             return redirect(url_for('admin'))
         else:
             flash("Usuario o contraseña incorrectos", "danger")
+
     return render_template('login.html')
 
 @app.route('/logout')
@@ -118,14 +121,10 @@ def enrollment():
                 flash('El documento ya existe en el sistema','danger')
                 return redirect(url_for('enrollment'))
 
-        # crear deuda inicial (ejemplo $1,000,000)
-        deuda = Deuda(estudiante_id=estudiante.id, concepto=f"Curso {curso}", monto_total=1000000, saldo_pendiente=1000000)
-        db.session.add(deuda)
-
         matricula = Matricula(estudiante_id=estudiante.id, curso=curso)
         db.session.add(matricula)
         db.session.commit()
-        flash('Matrícula registrada correctamente con deuda inicial','success')
+        flash('Matrícula registrada correctamente','success')
         return redirect(url_for('index'))
 
     return render_template('enrollment.html')
@@ -133,54 +132,63 @@ def enrollment():
 # --- Payment ---
 @app.route('/payment', methods=['GET','POST'])
 def payment():
-    estudiante = None
-    deudas = []
     if request.method == 'POST':
         documento = request.form.get('documento','').strip()
+        valor = request.form.get('valor','0').strip()
+        metodo = request.form.get('metodo','').strip()
+
+        # Validar número
+        try:
+            valor_f = float(valor)
+        except ValueError:
+            flash('Valor inválido','danger')
+            return redirect(url_for('payment'))
+
+        # Buscar estudiante
         estudiante = Estudiante.query.filter_by(documento=documento).first()
         if not estudiante:
-            flash("❌ No se encontró estudiante con ese documento","danger")
+            flash('Estudiante no encontrado','danger')
             return redirect(url_for('payment'))
-        deudas = Deuda.query.filter_by(estudiante_id=estudiante.id).all()
 
-    return render_template('payment.html', estudiante=estudiante, deudas=deudas)
+        # Registrar el pago
+        pago = Pago(estudiante_id=estudiante.id, valor=valor_f, metodo=metodo)
+        db.session.add(pago)
 
-@app.route('/registrar_pago/<int:deuda_id>', methods=['POST'])
-def registrar_pago(deuda_id):
-    deuda = Deuda.query.get_or_404(deuda_id)
-    valor = float(request.form.get('valor','0'))
-    metodo = request.form.get('metodo','').strip()
+        # Aplicar pago a deudas
+        deudas = Deuda.query.filter_by(estudiante_id=estudiante.id).filter(Deuda.saldo_pendiente > 0).all()
+        monto = valor_f
+        for deuda in deudas:
+            if monto <= 0:
+                break
+            if deuda.saldo_pendiente > monto:
+                deuda.saldo_pendiente -= monto
+                monto = 0
+            else:
+                monto -= deuda.saldo_pendiente
+                deuda.saldo_pendiente = 0
 
-    if valor <= 0 or valor > deuda.saldo_pendiente:
-        flash("⚠️ El valor ingresado no es válido","warning")
-        return redirect(url_for('payment'))
+        db.session.commit()
 
-    # registrar pago
-    pago = Pago(estudiante_id=deuda.estudiante_id, valor=valor, metodo=metodo)
-    db.session.add(pago)
+        # Generar factura PDF
+        buffer = BytesIO()
+        c = canvas.Canvas(buffer, pagesize=letter)
+        c.setFont("Helvetica-Bold", 14)
+        c.drawCentredString(300, 760, "Factura de Pago - Proyecto Educativo")
+        c.setFont("Helvetica", 11)
+        c.drawString(50, 720, f"Factura ID: {pago.id}")
+        c.drawString(50, 700, f"Fecha: {pago.fecha.strftime('%Y-%m-%d %H:%M:%S')}")
+        c.drawString(50, 680, f"Nombre: {estudiante.nombre}")
+        c.drawString(50, 660, f"Documento: {estudiante.documento}")
+        c.drawString(50, 640, f"Método de pago: {pago.metodo}")
+        c.drawString(50, 620, f"Valor: ${pago.valor:,.2f}")
+        c.showPage()
+        c.save()
+        buffer.seek(0)
 
-    # actualizar deuda
-    deuda.saldo_pendiente -= valor
-    db.session.commit()
+        return send_file(buffer, as_attachment=True, download_name=f'factura_{pago.id}.pdf', mimetype='application/pdf')
 
-    # generar factura
-    buffer = BytesIO()
-    c = canvas.Canvas(buffer, pagesize=letter)
-    c.setFont("Helvetica-Bold", 14)
-    c.drawCentredString(300, 760, "Factura de Pago - Proyecto Educativo")
-    c.setFont("Helvetica", 11)
-    c.drawString(50, 720, f"Factura ID: {pago.id}")
-    c.drawString(50, 700, f"Fecha: {pago.fecha.strftime('%Y-%m-%d %H:%M:%S')}")
-    c.drawString(50, 680, f"Nombre: {pago.estudiante.nombre}")
-    c.drawString(50, 660, f"Documento: {pago.estudiante.documento}")
-    c.drawString(50, 640, f"Método de pago: {pago.metodo}")
-    c.drawString(50, 620, f"Valor pagado: ${pago.valor:,.2f}")
-    c.drawString(50, 600, f"Saldo restante deuda: ${deuda.saldo_pendiente:,.2f}")
-    c.showPage()
-    c.save()
-    buffer.seek(0)
-
-    return send_file(buffer, as_attachment=True, download_name=f'factura_{pago.id}.pdf', mimetype='application/pdf')
+    # GET → mostrar formulario
+    return render_template('payment.html')
 
 # --- Consulta (protegida) ---
 @app.route('/consulta', methods=['GET','POST'])
@@ -199,10 +207,61 @@ def admin():
     estudiantes = Estudiante.query.order_by(Estudiante.nombre).all()
     matriculas = Matricula.query.order_by(Matricula.fecha.desc()).all()
     pagos = Pago.query.order_by(Pago.fecha.desc()).all()
-    deudas = Deuda.query.order_by(Deuda.fecha.desc()).all()
+    deudas = Deuda.query.order_by(Deuda.id.desc()).all()
     return render_template('admin.html', estudiantes=estudiantes, matriculas=matriculas, pagos=pagos, deudas=deudas)
 
-# --- Cambiar contraseña ---
+@app.route('/admin/estudiante/<int:id>/editar', methods=['GET', 'POST'])
+@login_required
+def editar_estudiante(id):
+    estudiante = Estudiante.query.get_or_404(id)
+    if request.method == 'POST':
+        estudiante.nombre = request.form['nombre']
+        estudiante.documento = request.form['documento']
+        estudiante.telefono = request.form['telefono']
+        db.session.commit()
+        flash('Estudiante actualizado correctamente', 'success')
+        return redirect(url_for('admin'))
+    return render_template('editar_estudiante.html', estudiante=estudiante)
+
+@app.route('/admin/crear_estudiante', methods=['POST'])
+@login_required
+def crear_estudiante():
+    nombre = request.form['nombre']
+    documento = request.form['documento']
+    telefono = request.form.get('telefono')
+    if not nombre or not documento:
+        flash("Nombre y documento son obligatorios", "danger")
+        return redirect(url_for('admin'))
+    nuevo = Estudiante(nombre=nombre, documento=documento, telefono=telefono)
+    db.session.add(nuevo)
+    db.session.commit()
+    flash("Estudiante creado correctamente", "success")
+    return redirect(url_for('admin'))
+
+@app.route('/admin/estudiante/<int:id>/toggle', methods=['POST'])
+@login_required
+def toggle_estudiante(id):
+    estudiante = Estudiante.query.get_or_404(id)
+    estudiante.activo = not estudiante.activo
+    db.session.commit()
+    estado = "activado" if estudiante.activo else "inactivado"
+    flash(f'Estudiante {estado} correctamente', 'info')
+    return redirect(url_for('admin'))
+
+# --- Crear deuda ---
+@app.route('/admin/crear_deuda', methods=['POST'])
+@login_required
+def crear_deuda():
+    estudiante_id = request.form['estudiante_id']
+    concepto = request.form['concepto']
+    monto = float(request.form['monto'])
+    deuda = Deuda(estudiante_id=estudiante_id, concepto=concepto, monto_total=monto, saldo_pendiente=monto)
+    db.session.add(deuda)
+    db.session.commit()
+    flash("Deuda registrada correctamente", "success")
+    return redirect(url_for('admin'))
+
+# --- Cambiar contraseña (protegida) ---
 @app.route('/cambiar_password', methods=['GET', 'POST'])
 @login_required
 def cambiar_password():
