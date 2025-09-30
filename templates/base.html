@@ -44,14 +44,14 @@
                             <i class="fa fa-credit-card"></i> Pagos
                         </a>
                     </li>
+                    <li class="nav-item">
+                        <a class="btn btn-grad-orange btn-nav w-100 mb-2 mb-lg-0" href="{{ url_for('consulta') }}">
+                            <i class="fa fa-search"></i> Consulta
+                        </a>
+                    </li>
 
-                    <!-- Botones privados (solo autenticados) -->
+                    <!-- Botones que requieren login -->
                     {% if current_user.is_authenticated %}
-                        <li class="nav-item">
-                            <a class="btn btn-grad-orange btn-nav w-100 mb-2 mb-lg-0" href="{{ url_for('consulta') }}">
-                                <i class="fa fa-search"></i> Consulta
-                            </a>
-                        </li>
                         <li class="nav-item">
                             <a class="btn btn-dark btn-nav w-100 mb-2 mb-lg-0" href="{{ url_for('admin') }}">
                                 <i class="fa fa-cogs"></i> Administración
@@ -63,7 +63,7 @@
                             </a>
                         </li>
                         <li class="nav-item">
-                            <a class="btn btn-grad btn-nav w-100 mb-2 mb-lg-0" href="{{ url_for('logout') }}">
+                            <a class="btn btn-danger btn-nav w-100 mb-2 mb-lg-0" href="{{ url_for('logout') }}">
                                 <i class="fa fa-sign-out-alt"></i> Salir
                             </a>
                         </li>

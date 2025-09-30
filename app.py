@@ -14,7 +14,12 @@ import os
 # --- Configuración básica ---
 app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY', 'devsecretkey')
-app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL') or 'sqlite:///educativo.db'
+
+# Use DATABASE_URL si está (Render/Postgres) o fallback sqlite local
+db_url = os.environ.get('DATABASE_URL') or 'sqlite:///educativo.db'
+# Some providers use postgres:// (deprecated); SQLAlchemy needs postgresql://
+db_url = db_url.replace("postgres://", "postgresql://")
+app.config['SQLALCHEMY_DATABASE_URI'] = db_url
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
@@ -30,6 +35,8 @@ class Usuario(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(50), unique=True, nullable=False)
     password = db.Column(db.String(200), nullable=False)
+    # opcional: role para distinguir admin
+    role = db.Column(db.String(20), default='admin')  # por defecto admin para facilitar pruebas
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -51,13 +58,16 @@ class Matricula(db.Model):
 
 class Pago(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    estudiante_id = db.Column(db.Integer, db.ForeignKey('estudiante.id'), nullable=False)
+    estudiante_id = db.Column(db.Integer, db.ForeignKey('estudiante.id'), nullable=True)  # pago directo al estudiante
+    deuda_id = db.Column(db.Integer, db.ForeignKey('deuda.id'), nullable=True)  # pago ligado a deuda (opcional)
     valor = db.Column(db.Float, nullable=False)
     metodo = db.Column(db.String(50), nullable=False)
     fecha = db.Column(db.DateTime, default=datetime.utcnow)
     estudiante = db.relationship('Estudiante', backref=db.backref('pagos', lazy=True))
+    deuda = db.relationship('Deuda', backref=db.backref('pagos', lazy=True))
 
 class Deuda(db.Model):
+    __tablename__ = 'deuda'
     id = db.Column(db.Integer, primary_key=True)
     estudiante_id = db.Column(db.Integer, db.ForeignKey('estudiante.id'), nullable=False)
     concepto = db.Column(db.String(100), nullable=False)
@@ -68,7 +78,7 @@ class Deuda(db.Model):
 # --- Context Processor ---
 @app.context_processor
 def inject_now():
-    return {'current_year': datetime.utcnow().year}
+    return {'current_year': datetime.utcnow().year, 'current_user': current_user}
 
 # ------------------- RUTAS -------------------
 
@@ -86,6 +96,7 @@ def login():
         user = Usuario.query.filter_by(username=username).first()
         if user and check_password_hash(user.password, password):
             login_user(user)
+            flash("Bienvenido/a", "success")
             return redirect(url_for('admin'))
         else:
             flash("Usuario o contraseña incorrectos", "danger")
@@ -95,7 +106,7 @@ def login():
 @app.route('/logout')
 def logout():
     logout_user()
-    return redirect(url_for('login'))
+    return redirect(url_for('index'))
 
 # --- Enrollment ---
 @app.route('/enrollment', methods=['GET','POST'])
@@ -129,66 +140,77 @@ def enrollment():
 
     return render_template('enrollment.html')
 
-# --- Payment ---
+# --- Payment / búsqueda de estudiante y deudas ---
 @app.route('/payment', methods=['GET','POST'])
 def payment():
+    estudiante = None
+    deudas = []
+    # Si recibe POST con 'documento' -> búsqueda del estudiante y mostrar deudas
     if request.method == 'POST':
         documento = request.form.get('documento','').strip()
-        valor = request.form.get('valor','0').strip()
-        metodo = request.form.get('metodo','').strip()
-
-        # Validar número
-        try:
-            valor_f = float(valor)
-        except ValueError:
-            flash('Valor inválido','danger')
+        if not documento:
+            flash("Ingrese un documento para buscar", "warning")
             return redirect(url_for('payment'))
 
-        # Buscar estudiante
         estudiante = Estudiante.query.filter_by(documento=documento).first()
         if not estudiante:
-            flash('Estudiante no encontrado','danger')
-            return redirect(url_for('payment'))
+            flash("Estudiante no encontrado", "danger")
+            return render_template('payment.html', estudiante=None, deudas=[])
+        # Buscar deudas pendientes
+        deudas = Deuda.query.filter_by(estudiante_id=estudiante.id).filter(Deuda.saldo_pendiente > 0).order_by(Deuda.id.desc()).all()
 
-        # Registrar el pago
-        pago = Pago(estudiante_id=estudiante.id, valor=valor_f, metodo=metodo)
-        db.session.add(pago)
+    # GET -> formulario vacío
+    return render_template('payment.html', estudiante=estudiante, deudas=deudas)
 
-        # Aplicar pago a deudas
-        deudas = Deuda.query.filter_by(estudiante_id=estudiante.id).filter(Deuda.saldo_pendiente > 0).all()
-        monto = valor_f
-        for deuda in deudas:
-            if monto <= 0:
-                break
-            if deuda.saldo_pendiente > monto:
-                deuda.saldo_pendiente -= monto
-                monto = 0
-            else:
-                monto -= deuda.saldo_pendiente
-                deuda.saldo_pendiente = 0
+# Registrar pago parcial o total para una deuda
+@app.route('/registrar_pago/<int:deuda_id>', methods=['POST'])
+def registrar_pago(deuda_id):
+    deuda = Deuda.query.get_or_404(deuda_id)
+    try:
+        valor = float(request.form.get('valor', '0'))
+    except ValueError:
+        flash("Valor inválido", "danger")
+        return redirect(url_for('payment'))
 
-        db.session.commit()
+    metodo = request.form.get('metodo', 'Efectivo')
+    if valor <= 0:
+        flash("Valor debe ser mayor que 0", "warning")
+        return redirect(url_for('payment'))
 
-        # Generar factura PDF
-        buffer = BytesIO()
-        c = canvas.Canvas(buffer, pagesize=letter)
-        c.setFont("Helvetica-Bold", 14)
-        c.drawCentredString(300, 760, "Factura de Pago - Proyecto Educativo")
-        c.setFont("Helvetica", 11)
-        c.drawString(50, 720, f"Factura ID: {pago.id}")
-        c.drawString(50, 700, f"Fecha: {pago.fecha.strftime('%Y-%m-%d %H:%M:%S')}")
-        c.drawString(50, 680, f"Nombre: {estudiante.nombre}")
-        c.drawString(50, 660, f"Documento: {estudiante.documento}")
-        c.drawString(50, 640, f"Método de pago: {pago.metodo}")
-        c.drawString(50, 620, f"Valor: ${pago.valor:,.2f}")
-        c.showPage()
-        c.save()
-        buffer.seek(0)
+    if valor > deuda.saldo_pendiente + 0.0001:
+        flash("El valor no puede ser mayor que el saldo pendiente", "warning")
+        return redirect(url_for('payment'))
 
-        return send_file(buffer, as_attachment=True, download_name=f'factura_{pago.id}.pdf', mimetype='application/pdf')
+    # Crear registro de pago ligado a la deuda
+    pago = Pago(estudiante_id=deuda.estudiante_id, deuda_id=deuda.id, valor=valor, metodo=metodo)
+    db.session.add(pago)
+    # Ajustar saldo
+    deuda.saldo_pendiente = max(0.0, deuda.saldo_pendiente - valor)
+    db.session.commit()
 
-    # GET → mostrar formulario
-    return render_template('payment.html')
+    flash("Pago registrado correctamente", "success")
+
+    # Generar factura PDF y devolverla para descarga (opcional)
+    buffer = BytesIO()
+    c = canvas.Canvas(buffer, pagesize=letter)
+    c.setFont("Helvetica-Bold", 14)
+    c.drawCentredString(300, 760, "Factura de Pago - Proyecto Educativo")
+    c.setFont("Helvetica", 11)
+    c.drawString(50, 720, f"Factura ID: {pago.id}")
+    c.drawString(50, 700, f"Fecha: {pago.fecha.strftime('%Y-%m-%d %H:%M:%S')}")
+    est = deuda.estudiante
+    c.drawString(50, 680, f"Nombre: {est.nombre}")
+    c.drawString(50, 660, f"Documento: {est.documento}")
+    c.drawString(50, 640, f"Concepto deuda: {deuda.concepto}")
+    c.drawString(50, 620, f"Método de pago: {pago.metodo}")
+    c.drawString(50, 600, f"Valor pagado: ${pago.valor:,.2f}")
+    c.drawString(50, 580, f"Saldo pendiente deuda: ${deuda.saldo_pendiente:,.2f}")
+    c.showPage()
+    c.save()
+    buffer.seek(0)
+
+    # Opcional: descargar la factura inmediatamente
+    return send_file(buffer, as_attachment=True, download_name=f'factura_{pago.id}.pdf', mimetype='application/pdf')
 
 # --- Consulta (protegida) ---
 @app.route('/consulta', methods=['GET','POST'])
@@ -204,6 +226,11 @@ def consulta():
 @app.route('/admin')
 @login_required
 def admin():
+    # sólo usuarios con role 'admin' pueden ver la página admin (control de servidor, los botones públicos pueden mostrarse en UI)
+    if getattr(current_user, "role", "") != "admin":
+        flash("Acceso denegado", "danger")
+        return redirect(url_for('index'))
+
     estudiantes = Estudiante.query.order_by(Estudiante.nombre).all()
     matriculas = Matricula.query.order_by(Matricula.fecha.desc()).all()
     pagos = Pago.query.order_by(Pago.fecha.desc()).all()
@@ -252,9 +279,12 @@ def toggle_estudiante(id):
 @app.route('/admin/crear_deuda', methods=['POST'])
 @login_required
 def crear_deuda():
-    estudiante_id = request.form['estudiante_id']
-    concepto = request.form['concepto']
-    monto = float(request.form['monto'])
+    estudiante_id = request.form.get('estudiante_id')
+    concepto = request.form.get('concepto')
+    monto = float(request.form.get('monto', '0') or 0)
+    if not estudiante_id or monto <= 0 or not concepto:
+        flash("Datos inválidos para crear deuda", "danger")
+        return redirect(url_for('admin'))
     deuda = Deuda(estudiante_id=estudiante_id, concepto=concepto, monto_total=monto, saldo_pendiente=monto)
     db.session.add(deuda)
     db.session.commit()
@@ -285,8 +315,33 @@ def cambiar_password():
 
     return render_template('cambiar_password.html')
 
-# --- MAIN ---
+# --- Pago en efectivo (form genérico si quieres usar) ---
+@app.route('/pago_efectivo', methods=['GET','POST'])
+def pago_efectivo():
+    # Puedes redirigir a /payment o implementar lógica específica
+    return redirect(url_for('payment'))
+
+# --- Pago online (esqueleto Wompi) ---
+@app.route('/pago_online', methods=['GET', 'POST'])
+def pago_online():
+    # Si no tienes sandbox accesible, dejamos un redirect informativo.
+    if request.method == 'POST':
+        flash("Integración con pasarela (Wompi) pendiente / configurada en variables de entorno", "info")
+        return redirect(url_for('payment'))
+    return render_template('pago_online.html')
+
+@app.route('/confirmacion_pago')
+def confirmacion_pago():
+    flash("✅ Gracias, tu pago está siendo procesado", "success")
+    return redirect(url_for("index"))
+
+# --- MAIN: crear tablas automáticamente (incluye Deuda) ---
 if __name__ == '__main__':
     with app.app_context():
         db.create_all()
+        # Crear un usuario admin por defecto si no existe (solo para pruebas)
+        if not Usuario.query.filter_by(username='admin').first():
+            admin_user = Usuario(username='admin', password=generate_password_hash('adminpass'), role='admin')
+            db.session.add(admin_user)
+            db.session.commit()
     app.run(host='0.0.0.0', port=int(os.environ.get('PORT',5000)), debug=True)
