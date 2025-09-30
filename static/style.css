@@ -142,3 +142,13 @@ a:hover {
     background-position: right center;
     opacity: 0.95;
 }
+
+/* admin buttons spacing */
+.table td .btn {
+  min-width: 44px;
+  height: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: .25rem .4rem;
+}
