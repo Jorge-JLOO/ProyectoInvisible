@@ -57,12 +57,12 @@
                 </td>
                 <td class="text-center">
                   <div class="d-flex justify-content-center gap-2">
-                    <!-- Botón editar (form GET) -->
-                    <form action="{{ url_for('editar_estudiante', id=est.id) }}" method="get" class="d-inline">
-                      <button type="submit" class="btn btn-sm btn-warning" title="Editar">
-                        <i class="fa fa-edit"></i>
-                      </button>
-                    </form>
+                    <!-- Botón editar (enlace GET) -->
+                    <a href="{{ url_for('editar_estudiante', id=est.id) }}"
+                       class="btn btn-sm btn-warning"
+                       title="Editar">
+                      <i class="fa fa-edit"></i>
+                    </a>
 
                     <!-- Botón activar/inactivar (form POST) -->
                     <form action="{{ url_for('toggle_estudiante', id=est.id) }}" method="POST" class="d-inline">
