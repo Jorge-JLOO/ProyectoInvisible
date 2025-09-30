@@ -13,7 +13,8 @@
 
     <!-- Estilos propios -->
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-</head>
+
+   </head>
 <body class="d-flex flex-column min-vh-100">
 
     <!-- Navbar -->
@@ -22,54 +23,52 @@
             <a class="navbar-brand fw-bold" href="{{ url_for('index') }}">
                 <i class="fa-solid fa-graduation-cap"></i> Proyecto Educativo
             </a>
-            <!-- Botón hamburguesa -->
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                 <span class="navbar-toggler-icon"></span>
             </button>
 
-            <!-- Menú colapsable -->
             <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav ms-auto d-flex flex-wrap gap-2">
+                <ul class="navbar-nav ms-auto gap-2">
                     <li class="nav-item">
-                        <a class="btn btn-grad btn-nav w-100" href="{{ url_for('index') }}">
+                        <a class="btn btn-grad btn-nav w-100 mb-2 mb-lg-0" href="{{ url_for('index') }}">
                             <i class="fa fa-home"></i> Inicio
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="btn btn-grad-green btn-nav w-100" href="{{ url_for('enrollment') }}">
+                        <a class="btn btn-grad-green btn-nav w-100 mb-2 mb-lg-0" href="{{ url_for('enrollment') }}">
                             <i class="fa fa-user-plus"></i> Matrículas
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="btn btn-grad-blue btn-nav w-100" href="{{ url_for('payment') }}">
+                        <a class="btn btn-grad-blue btn-nav w-100 mb-2 mb-lg-0" href="{{ url_for('payment') }}">
                             <i class="fa fa-credit-card"></i> Pagos
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="btn btn-grad-orange btn-nav w-100" href="{{ url_for('consulta') }}">
+                        <a class="btn btn-grad-orange btn-nav w-100 mb-2 mb-lg-0" href="{{ url_for('consulta') }}">
                             <i class="fa fa-search"></i> Consulta
                         </a>
                     </li>
 
                     {% if current_user.is_authenticated %}
                         <li class="nav-item">
-                            <a class="btn btn-dark btn-nav w-100" href="{{ url_for('admin') }}">
+                            <a class="btn btn-dark btn-nav w-100 mb-2 mb-lg-0" href="{{ url_for('admin') }}">
                                 <i class="fa fa-cogs"></i> Administración
                             </a>
                         </li>
                         <li class="nav-item">
-                            <a class="btn btn-grad-orange btn-nav w-100" href="{{ url_for('cambiar_password') }}">
+                            <a class="btn btn-grad-orange btn-nav w-100 mb-2 mb-lg-0" href="{{ url_for('cambiar_password') }}">
                                 <i class="fa fa-key"></i> Cambiar contraseña
                             </a>
                         </li>
                         <li class="nav-item">
-                            <a class="btn btn-grad btn-nav w-100" href="{{ url_for('logout') }}">
+                            <a class="btn btn-grad btn-nav w-100 mb-2 mb-lg-0" href="{{ url_for('logout') }}">
                                 <i class="fa fa-sign-out-alt"></i> Salir
                             </a>
                         </li>
                     {% else %}
                         <li class="nav-item">
-                            <a class="btn btn-grad-blue btn-nav w-100" href="{{ url_for('login') }}">
+                            <a class="btn btn-grad-blue btn-nav w-100 mb-2 mb-lg-0" href="{{ url_for('login') }}">
                                 <i class="fa fa-sign-in-alt"></i> Iniciar sesión
                             </a>
                         </li>
