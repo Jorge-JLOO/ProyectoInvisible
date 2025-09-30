@@ -4,6 +4,18 @@
 {% block content %}
 <h2 class="mb-4"><i class="fa fa-cogs"></i> Panel de Administración</h2>
 
+<style>
+  /* Botones cuadrados del mismo tamaño */
+  .btn-square {
+    width: 40px;
+    height: 40px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 0;
+  }
+</style>
+
 <div class="row">
   <!-- Estudiantes -->
   <div class="col-lg-6">
@@ -57,23 +69,23 @@
                 </td>
                 <td class="text-center">
                   <div class="d-flex justify-content-center align-items-center gap-2">
-                    <!-- Botón editar (enlace GET) -->
+                    <!-- Botón editar -->
                     <a href="{{ url_for('editar_estudiante', id=est.id) }}"
-                       class="btn btn-sm btn-warning"
+                       class="btn btn-sm btn-warning btn-square"
                        title="Editar">
                       <i class="fa fa-edit"></i>
                     </a>
 
-                    <!-- Botón activar/inactivar (form POST) -->
+                    <!-- Botón activar/inactivar -->
                     <form action="{{ url_for('toggle_estudiante', id=est.id) }}"
                           method="POST"
                           class="d-inline mb-0">
                       {% if est.activo %}
-                        <button class="btn btn-sm btn-danger" title="Inactivar">
+                        <button class="btn btn-sm btn-danger btn-square" title="Inactivar">
                           <i class="fa fa-ban"></i>
                         </button>
                       {% else %}
-                        <button class="btn btn-sm btn-success" title="Activar">
+                        <button class="btn btn-sm btn-success btn-square" title="Activar">
                           <i class="fa fa-check"></i>
                         </button>
                       {% endif %}
