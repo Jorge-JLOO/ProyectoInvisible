@@ -56,7 +56,7 @@
                   {% endif %}
                 </td>
                 <td class="text-center">
-                  <div class="d-flex justify-content-center gap-2">
+                  <div class="d-flex justify-content-center align-items-center gap-2">
                     <!-- Botón editar (enlace GET) -->
                     <a href="{{ url_for('editar_estudiante', id=est.id) }}"
                        class="btn btn-sm btn-warning"
@@ -65,7 +65,9 @@
                     </a>
 
                     <!-- Botón activar/inactivar (form POST) -->
-                    <form action="{{ url_for('toggle_estudiante', id=est.id) }}" method="POST" class="d-inline">
+                    <form action="{{ url_for('toggle_estudiante', id=est.id) }}"
+                          method="POST"
+                          class="d-inline mb-0">
                       {% if est.activo %}
                         <button class="btn btn-sm btn-danger" title="Inactivar">
                           <i class="fa fa-ban"></i>
@@ -77,7 +79,7 @@
                       {% endif %}
                     </form>
                   </div>
-                </td>
+                </td>                
               </tr>
               {% else %}
               <tr>
