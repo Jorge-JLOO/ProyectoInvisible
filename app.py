@@ -43,12 +43,15 @@ class Usuario(UserMixin, db.Model):
 def load_user(user_id):
     return Usuario.query.get(int(user_id))
 
+# 🔒 Decorador para restringir solo a administradores
 def admin_required(f):
     @wraps(f)
     def wrapped(*args, **kwargs):
-        if not current_user.is_authenticated or getattr(current_user, "role", "user") != "admin":
-            flash("No tienes permisos para acceder a esa página.", "danger")
+        if not current_user.is_authenticated:
             return redirect(url_for('login'))
+        if getattr(current_user, "role", "user") != "admin":
+            flash("No tienes permisos para acceder a esa página.", "danger")
+            return redirect(url_for('index'))
         return f(*args, **kwargs)
     return wrapped
 
@@ -234,7 +237,12 @@ def admin():
     matriculas = Matricula.query.order_by(Matricula.fecha.desc()).all()
     pagos = Pago.query.order_by(Pago.fecha.desc()).all()
     deudas = Deuda.query.order_by(Deuda.id.desc()).all()
-    return render_template('admin.html', estudiantes=estudiantes, matriculas=matriculas, pagos=pagos, deudas=deudas)
+    return render_template('admin.html',
+                           estudiantes=estudiantes,
+                           matriculas=matriculas,
+                           pagos=pagos,
+                           deudas=deudas)
+
 
 @app.route('/admin/estudiante/<int:id>/editar', methods=['GET', 'POST'])
 @login_required
