@@ -7,6 +7,9 @@ from io import BytesIO
 from reportlab.lib.pagesizes import letter
 from reportlab.pdfgen import canvas
 from werkzeug.security import generate_password_hash, check_password_hash
+from functools import wraps
+from flask import abort, flash, redirect
+from flask_migrate import Migrate
 import requests
 import uuid
 import os
@@ -23,7 +26,7 @@ app.config['SQLALCHEMY_DATABASE_URI'] = db_url
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
-
+migrate = Migrate(app, db)
 # --- Login Manager ---
 login_manager = LoginManager(app)
 login_manager.login_view = 'login'
@@ -36,11 +39,19 @@ class Usuario(UserMixin, db.Model):
     username = db.Column(db.String(50), unique=True, nullable=False)
     password = db.Column(db.String(200), nullable=False)
     # opcional: role para distinguir admin
-    role = db.Column(db.String(20), default='admin')  # por defecto admin para facilitar pruebas
+    role = db.Column(db.String(20), nullable=False, default='user')  # <-- agregado
 
 @login_manager.user_loader
 def load_user(user_id):
     return Usuario.query.get(int(user_id))
+def admin_required(f):
+    @wraps(f)
+    def wrapped(*args, **kwargs):
+        if not current_user.is_authenticated or getattr(current_user, "role", "user") != "admin":
+            flash("No tienes permisos para acceder a esa página.", "danger")
+            return redirect(url_for('login'))
+        return f(*args, **kwargs)
+    return wrapped
 
 class Estudiante(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -225,6 +236,7 @@ def consulta():
 # --- Admin (protegida) ---
 @app.route('/admin')
 @login_required
+@admin_required
 def admin():
     # sólo usuarios con role 'admin' pueden ver la página admin (control de servidor, los botones públicos pueden mostrarse en UI)
     if getattr(current_user, "role", "") != "admin":
