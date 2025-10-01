@@ -1,15 +1,17 @@
+# reset_admin.py
 from app import app, db, Usuario
 from werkzeug.security import generate_password_hash
 
-USERNAME = "JorgeJLOO"
-PASSWORD = "5607"   # cámbiala aquí si quieres otra
+# --- Configuración del admin ---
+USERNAME = "JorgeJLOO"   # cámbialo si quieres otro
+PASSWORD = "5607"        # cámbialo si quieres otra
 
 with app.app_context():
-    # eliminar cualquier admin existente
+    # Eliminar usuario con mismo username
     Usuario.query.filter_by(username=USERNAME).delete()
     db.session.commit()
 
-    # crear uno nuevo limpio
+    # Crear admin nuevo
     admin = Usuario(
         username=USERNAME,
         password=generate_password_hash(PASSWORD),
