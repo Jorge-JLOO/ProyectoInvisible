@@ -43,14 +43,15 @@ class Usuario(UserMixin, db.Model):
 def load_user(user_id):
     return Usuario.query.get(int(user_id))
 
-# 🔒 Decorador para restringir solo a administradores
+# --- Decorador para admin ---
 def admin_required(f):
     @wraps(f)
     def wrapped(*args, **kwargs):
         if not current_user.is_authenticated:
+            flash("⚠️ Debes iniciar sesión", "warning")
             return redirect(url_for('login'))
         if getattr(current_user, "role", "user") != "admin":
-            flash("No tienes permisos para acceder a esa página.", "danger")
+            flash("❌ No tienes permisos para acceder a esta página.", "danger")
             return redirect(url_for('index'))
         return f(*args, **kwargs)
     return wrapped
