@@ -353,7 +353,7 @@ if __name__ == '__main__':
         db.create_all()
         # Crear un usuario admin por defecto si no existe (solo para pruebas)
         if not Usuario.query.filter_by(username='admin').first():
-            admin_user = Usuario(username='admin', password=generate_password_hash('adminpass'), role='admin')
+            admin_user = Usuario(username='admin', password=generate_password_hash('admin123'), role='admin')
             db.session.add(admin_user)
             db.session.commit()
     app.run(host='0.0.0.0', port=int(os.environ.get('PORT',5000)), debug=True)
