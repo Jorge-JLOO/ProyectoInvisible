@@ -1,7 +1,7 @@
 from app import app, db, Usuario
 from werkzeug.security import generate_password_hash
 
-USERNAME = "Jorge JLOO"
+USERNAME = "JorgeJLOO"
 PASSWORD = "5607"   # cámbiala aquí si quieres otra
 
 with app.app_context():
