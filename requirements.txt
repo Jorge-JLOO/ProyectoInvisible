@@ -1,7 +1,10 @@
 Flask>=2.0
 Flask-SQLAlchemy>=2.5
 reportlab>=4.0
+flask
 gunicorn
+reportlab
+flask_sqlalchemy
 psycopg2-binary
 Flask-Login>=0.6.3
-requests
+Flask-Migrate
