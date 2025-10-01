@@ -243,7 +243,6 @@ def admin():
                            pagos=pagos,
                            deudas=deudas)
 
-
 @app.route('/admin/estudiante/<int:id>/editar', methods=['GET', 'POST'])
 @login_required
 def editar_estudiante(id):
