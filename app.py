@@ -9,7 +9,6 @@ from reportlab.pdfgen import canvas
 from werkzeug.security import generate_password_hash, check_password_hash
 from functools import wraps
 from flask_migrate import Migrate
-from flask import Flask
 import requests
 import uuid
 import os
