@@ -9,6 +9,7 @@ from reportlab.pdfgen import canvas
 from werkzeug.security import generate_password_hash, check_password_hash
 from functools import wraps
 from flask_migrate import Migrate
+from flask import Flask
 import requests
 import uuid
 import os
@@ -26,10 +27,13 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 migrate = Migrate(app, db)
 
-# --- Login Manager ---
-login_manager = LoginManager(app)
-login_manager.login_view = 'login'
+# --- Login Manager ---#
+login_manager = LoginManager()
+login_manager.init_app(app)
+login_manager.login_view = "login"
 login_manager.login_message = "⚠️ Debes iniciar sesión para acceder a esta sección"
+login_manager.login_message_category = "warning"
+
 
 # --- Modelos ---
 class Usuario(UserMixin, db.Model):
@@ -230,20 +234,12 @@ def consulta():
     return render_template('consulta.html', estudiante=estudiante)
 
 
-# --- Admin ---
 @app.route('/admin')
-@admin_required
 @login_required
+@admin_required
 def admin():
-    estudiantes = Estudiante.query.order_by(Estudiante.nombre).all()
-    matriculas = Matricula.query.order_by(Matricula.fecha.desc()).all()
-    pagos = Pago.query.order_by(Pago.fecha.desc()).all()
-    deudas = Deuda.query.order_by(Deuda.id.desc()).all()
-    return render_template("admin.html",
-                           estudiantes=estudiantes,
-                           matriculas=matriculas,
-                           pagos=pagos,
-                           deudas=deudas)
+    return render_template("admin.html")
+
 
 
 @app.route('/admin/estudiante/<int:id>/editar', methods=['GET', 'POST'])
