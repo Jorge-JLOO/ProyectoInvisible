@@ -234,12 +234,20 @@ def consulta():
     return render_template('consulta.html', estudiante=estudiante)
 
 
+# --- Admin ---
 @app.route('/admin')
-@login_required
 @admin_required
+@login_required
 def admin():
-    return render_template("admin.html")
-
+    estudiantes = Estudiante.query.order_by(Estudiante.nombre).all()
+    matriculas = Matricula.query.order_by(Matricula.fecha.desc()).all()
+    pagos = Pago.query.order_by(Pago.fecha.desc()).all()
+    deudas = Deuda.query.order_by(Deuda.id.desc()).all()
+    return render_template("admin.html",
+                           estudiantes=estudiantes,
+                           matriculas=matriculas,
+                           pagos=pagos,
+                           deudas=deudas)
 
 
 @app.route('/admin/estudiante/<int:id>/editar', methods=['GET', 'POST'])
