@@ -114,7 +114,7 @@ def login():
         if user and check_password_hash(user.password, password):
             login_user(user)
             flash("Bienvenido/a", "success")
-            return redirect(url_for('index'))
+            return redirect(url_for('admin')) # Lo probé con index, pero siguió igual
         else:
             flash("Usuario o contraseña incorrectos", "danger")
 
@@ -235,8 +235,8 @@ def consulta():
 
 # --- Admin ---
 @app.route('/admin')
-@admin_required
 @login_required
+@admin_required
 def admin():
     estudiantes = Estudiante.query.order_by(Estudiante.nombre).all()
     matriculas = Matricula.query.order_by(Matricula.fecha.desc()).all()
