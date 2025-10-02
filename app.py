@@ -229,6 +229,7 @@ def consulta():
         estudiante = Estudiante.query.filter_by(documento=documento).first()
     return render_template('consulta.html', estudiante=estudiante)
 
+
 # --- Admin ---
 @app.route('/admin')
 @admin_required
@@ -238,11 +239,12 @@ def admin():
     matriculas = Matricula.query.order_by(Matricula.fecha.desc()).all()
     pagos = Pago.query.order_by(Pago.fecha.desc()).all()
     deudas = Deuda.query.order_by(Deuda.id.desc()).all()
-    return render_template('admin.html',
+    return render_template("admin.html",
                            estudiantes=estudiantes,
                            matriculas=matriculas,
                            pagos=pagos,
                            deudas=deudas)
+
 
 @app.route('/admin/estudiante/<int:id>/editar', methods=['GET', 'POST'])
 @login_required
