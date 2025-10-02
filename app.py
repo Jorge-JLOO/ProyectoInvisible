@@ -231,8 +231,8 @@ def consulta():
 
 # --- Admin ---
 @app.route('/admin')
-@login_required
 @admin_required
+@login_required
 def admin():
     estudiantes = Estudiante.query.order_by(Estudiante.nombre).all()
     matriculas = Matricula.query.order_by(Matricula.fecha.desc()).all()
