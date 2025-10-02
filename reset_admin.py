@@ -1,23 +1,26 @@
-# reset_admin.py
 from app import app, db, Usuario
 from werkzeug.security import generate_password_hash
 
-# --- Configuración del admin ---
-USERNAME = "JorgeJLOO"   # cámbialo si quieres otro
-PASSWORD = "5607"        # cámbialo si quieres otra
+def reset_admin():
+    username = "admin"
+    password = "1234"  # 👈 nueva contraseña
+    role = "admin"
 
-with app.app_context():
-    # Eliminar usuario con mismo username
-    Usuario.query.filter_by(username=USERNAME).delete()
-    db.session.commit()
+    with app.app_context():  # ✅ Esto crea el contexto correcto
+        admin = Usuario.query.filter_by(username=username).first()
+        if admin:
+            admin.password_hash = generate_password_hash(password)
+            admin.role = role
+            print(f"✅ Contraseña de '{username}' actualizada.")
+        else:
+            admin = Usuario(
+                username=username,
+                password_hash=generate_password_hash(password),
+                role=role
+            )
+            db.session.add(admin)
+            print(f"✅ Usuario '{username}' creado.")
+        db.session.commit()
 
-    # Crear admin nuevo
-    admin = Usuario(
-        username=USERNAME,
-        password=generate_password_hash(PASSWORD),
-        role="admin"
-    )
-    db.session.add(admin)
-    db.session.commit()
-
-    print(f"✅ Usuario administrador '{USERNAME}' creado con contraseña: {PASSWORD}")
+if __name__ == "__main__":
+    reset_admin()

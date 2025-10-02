@@ -114,7 +114,7 @@ def login():
         if user and check_password_hash(user.password, password):
             login_user(user)
             flash("Bienvenido/a", "success")
-            return redirect(url_for('admin'))
+            return redirect(url_for('index'))
         else:
             flash("Usuario o contraseña incorrectos", "danger")
 
