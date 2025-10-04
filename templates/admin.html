@@ -5,17 +5,17 @@
 <div class="card shadow p-4">
     <h3 class="mb-4"><i class="fa fa-cogs"></i> Panel de Administración</h3>
 
-    <a href="{{ url_for('admin_configuracion') }}" class="btn btn-secondary mb-3">
-        <i class="fa fa-cogs"></i> Configuración
-    </a>
-
-
     <!-- Navegación con pestañas -->
     <ul class="nav nav-tabs" id="adminTabs" role="tablist">
         <li class="nav-item" role="presentation">
             <button class="nav-link active" id="estudiantes-tab" data-bs-toggle="tab" data-bs-target="#estudiantes" type="button" role="tab">
                 <i class="fa fa-users"></i> Estudiantes
             </button>
+
+            <a href="{{ url_for('admin_configuracion') }}" class="btn btn-secondary mb-3">
+             <i class="fa fa-cogs"></i> Configuración
+            </a>
+
         </li>
         <li class="nav-item" role="presentation">
             <button class="nav-link" id="matriculas-tab" data-bs-toggle="tab" data-bs-target="#matriculas" type="button" role="tab">
