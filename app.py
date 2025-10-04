@@ -69,9 +69,12 @@ class Estudiante(db.Model):
 class Matricula(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     estudiante_id = db.Column(db.Integer, db.ForeignKey('estudiante.id'), nullable=False)
-    curso = db.Column(db.String(100), nullable=False)
+    curso_id = db.Column(db.Integer, db.ForeignKey('curso.id'), nullable=False)
     fecha = db.Column(db.DateTime, default=datetime.utcnow)
+
     estudiante = db.relationship('Estudiante', backref=db.backref('matriculas', lazy=True))
+    curso = db.relationship('Curso', backref=db.backref('matriculas', lazy=True))
+
 
 class Pago(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -97,6 +100,14 @@ class Configuracion(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     clave = db.Column(db.String(50), unique=True, nullable=False)
     valor = db.Column(db.String(100), nullable=False)
+
+class Curso(db.Model):
+    __tablename__ = 'curso'
+    id = db.Column(db.Integer, primary_key=True)
+    nombre = db.Column(db.String(100), unique=True, nullable=False)
+    descripcion = db.Column(db.String(255))
+    precio = db.Column(db.Float, nullable=False, default=0.0)
+
 
     @staticmethod
     def get(clave, default=None):
@@ -150,50 +161,32 @@ def logout():
 # --- Enrollment ---
 @app.route('/enrollment', methods=['GET','POST'])
 def enrollment():
+    cursos = Curso.query.order_by(Curso.nombre).all()
+
     if request.method == 'POST':
         nombre = request.form.get('nombre','').strip()
         documento = request.form.get('documento','').strip()
-        curso = request.form.get('curso','').strip()
+        curso_id = request.form.get('curso_id')
         telefono = request.form.get('telefono','').strip()
 
-        if not nombre or not documento or not curso:
-            flash('Nombre, documento y curso son obligatorios','danger')
+        if not nombre or not documento or not curso_id:
+            flash('Todos los campos son obligatorios','danger')
             return redirect(url_for('enrollment'))
 
         estudiante = Estudiante.query.filter_by(documento=documento).first()
         if not estudiante:
-            try:
-                estudiante = Estudiante(nombre=nombre, documento=documento, telefono=telefono)
-                db.session.add(estudiante)
-                db.session.commit()
-            except IntegrityError:
-                db.session.rollback()
-                flash('El documento ya existe en el sistema','danger')
-                return redirect(url_for('enrollment'))
+            estudiante = Estudiante(nombre=nombre, documento=documento, telefono=telefono)
+            db.session.add(estudiante)
+            db.session.commit()
 
-        matricula = Matricula(estudiante_id=estudiante.id, curso=curso)
+        matricula = Matricula(estudiante_id=estudiante.id, curso_id=curso_id)
         db.session.add(matricula)
         db.session.commit()
 
-        # --- Obtener precio desde Configuración ---
-        config = Configuracion.query.filter_by(clave='precio_semestre').first()
-        if config:
-            precio_semestre = float(config.valor)
-        else:
-            precio_semestre = 1000000  # valor por defecto si no hay config
-
-        # Crear deuda automáticamente
-        deuda = Deuda(estudiante_id=estudiante.id,
-                      concepto=f"Semestre de {curso}",
-                      monto_total=precio_semestre,
-                      saldo_pendiente=precio_semestre)
-        db.session.add(deuda)
-        db.session.commit()
-
-        flash(f'Matrícula registrada y deuda generada: ${precio_semestre:,.2f}','success')
+        flash('Matrícula registrada correctamente','success')
         return redirect(url_for('index'))
 
-    return render_template('enrollment.html')
+    return render_template('enrollment.html', cursos=cursos)
 
 # --- Payment / búsqueda de estudiante y deudas ---
 @app.route('/payment', methods=['GET','POST'])
