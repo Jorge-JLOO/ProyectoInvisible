@@ -1,7 +1,7 @@
 from flask import Flask, render_template, request, redirect, send_file, url_for, flash, abort
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
-from sqlalchemy.exc import IntegrityError
+from sqlalchemy.exc import IntegrityError, OperationalError
 from datetime import datetime
 from io import BytesIO
 from reportlab.lib.pagesizes import letter
@@ -75,8 +75,6 @@ class Matricula(db.Model):
     estudiante = db.relationship('Estudiante', backref=db.backref('matriculas', lazy=True))
     curso = db.relationship('Curso', backref=db.backref('matriculas', lazy=True))
 
-
-
 class Pago(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     estudiante_id = db.Column(db.Integer, db.ForeignKey('estudiante.id'), nullable=True)
@@ -104,18 +102,30 @@ class Configuracion(db.Model):
 
     @staticmethod
     def get(clave, default=None):
-        item = Configuracion.query.filter_by(clave=clave).first()
-        return item.valor if item else default
+        # puede fallar si las tablas aún no existen (migraciones pendientes),
+        # devolvemos default en ese caso en vez de lanzar error
+        try:
+            item = Configuracion.query.filter_by(clave=clave).first()
+            return item.valor if item else default
+        except (OperationalError, Exception):
+            return default
 
     @staticmethod
     def set(clave, valor):
-        item = Configuracion.query.filter_by(clave=clave).first()
-        if not item:
-            item = Configuracion(clave=clave, valor=valor)
-            db.session.add(item)
-        else:
-            item.valor = valor
-        db.session.commit()
+        try:
+            item = Configuracion.query.filter_by(clave=clave).first()
+            if not item:
+                item = Configuracion(clave=clave, valor=valor)
+                db.session.add(item)
+            else:
+                item.valor = valor
+            db.session.commit()
+        except IntegrityError:
+            db.session.rollback()
+            raise
+        except Exception:
+            db.session.rollback()
+            raise
 
 class Curso(db.Model):
     __tablename__ = 'curso'
@@ -146,7 +156,8 @@ def login():
         if user and check_password_hash(user.password, password):
             login_user(user)
             flash("Bienvenido/a", "success")
-            return redirect(url_for('admin')) # Lo probé con index, pero siguió igual
+            # mejor llevar al index; admin() ya valida permisos
+            return redirect(url_for('index'))
         else:
             flash("Usuario o contraseña incorrectos", "danger")
 
@@ -160,25 +171,46 @@ def logout():
 # --- Enrollment ---
 @app.route('/enrollment', methods=['GET','POST'])
 def enrollment():
-    cursos = Curso.query.order_by(Curso.nombre).all()
+    # protegemos read con try/except en caso de migraciones incompletas
+    try:
+        cursos = Curso.query.order_by(Curso.nombre).all()
+    except Exception:
+        cursos = []
 
     if request.method == 'POST':
         nombre = request.form.get('nombre','').strip()
         documento = request.form.get('documento','').strip()
-        curso_id = request.form.get('curso_id')
+        curso_id_raw = request.form.get('curso_id')
         telefono = request.form.get('telefono','').strip()
 
-        if not nombre or not documento or not curso_id:
+        if not nombre or not documento or not curso_id_raw:
             flash('Todos los campos son obligatorios','danger')
+            return redirect(url_for('enrollment'))
+
+        # validar y parsear curso_id
+        try:
+            curso_id = int(curso_id_raw)
+        except (TypeError, ValueError):
+            flash('Curso inválido', 'danger')
+            return redirect(url_for('enrollment'))
+
+        curso = Curso.query.get(curso_id)
+        if not curso:
+            flash('Curso no encontrado', 'danger')
             return redirect(url_for('enrollment'))
 
         estudiante = Estudiante.query.filter_by(documento=documento).first()
         if not estudiante:
-            estudiante = Estudiante(nombre=nombre, documento=documento, telefono=telefono)
-            db.session.add(estudiante)
-            db.session.commit()
+            try:
+                estudiante = Estudiante(nombre=nombre, documento=documento, telefono=telefono)
+                db.session.add(estudiante)
+                db.session.commit()
+            except IntegrityError:
+                db.session.rollback()
+                flash('El documento ya existe en el sistema','danger')
+                return redirect(url_for('enrollment'))
 
-        matricula = Matricula(estudiante_id=estudiante.id, curso_id=curso_id)
+        matricula = Matricula(estudiante_id=estudiante.id, curso_id=curso.id)
         db.session.add(matricula)
         db.session.commit()
 
@@ -301,9 +333,15 @@ def crear_estudiante():
     if not nombre or not documento:
         flash("Nombre y documento son obligatorios", "danger")
         return redirect(url_for('admin'))
-    nuevo = Estudiante(nombre=nombre, documento=documento, telefono=telefono)
-    db.session.add(nuevo)
-    db.session.commit()
+    try:
+        nuevo = Estudiante(nombre=nombre, documento=documento, telefono=telefono)
+        db.session.add(nuevo)
+        db.session.commit()
+    except IntegrityError:
+        db.session.rollback()
+        flash("Documento ya registrado", "danger")
+        return redirect(url_for('admin'))
+
     flash("Estudiante creado correctamente", "success")
     return redirect(url_for('admin'))
 
@@ -320,12 +358,32 @@ def toggle_estudiante(id):
 @app.route('/admin/crear_deuda', methods=['POST'])
 @login_required
 def crear_deuda():
-    estudiante_id = request.form.get('estudiante_id')
+    estudiante_id_raw = request.form.get('estudiante_id')
     concepto = request.form.get('concepto')
-    monto = float(request.form.get('monto', '0') or 0)
-    if not estudiante_id or monto <= 0 or not concepto:
+    monto_raw = request.form.get('monto', '0') or '0'
+
+    # validaciones y parseo
+    try:
+        estudiante_id = int(estudiante_id_raw)
+    except (TypeError, ValueError):
+        flash("Estudiante inválido", "danger")
+        return redirect(url_for('admin'))
+
+    try:
+        monto = float(monto_raw)
+    except (TypeError, ValueError):
+        flash("Monto inválido", "danger")
+        return redirect(url_for('admin'))
+
+    if monto <= 0 or not concepto:
         flash("Datos inválidos para crear deuda", "danger")
         return redirect(url_for('admin'))
+
+    estudiante = Estudiante.query.get(estudiante_id)
+    if not estudiante:
+        flash("Estudiante no encontrado", "danger")
+        return redirect(url_for('admin'))
+
     deuda = Deuda(estudiante_id=estudiante_id, concepto=concepto, monto_total=monto, saldo_pendiente=monto)
     db.session.add(deuda)
     db.session.commit()
@@ -338,10 +396,15 @@ def crear_deuda():
 def admin_configuracion():
     if request.method == 'POST':
         precio = request.form.get('precio_semestre')
-        if precio:
-            Configuracion.set("precio_semestre", precio)
-            flash("✅ Precio de semestre actualizado con éxito", "success")
-            return redirect(url_for('admin_configuracion'))
+        if precio is not None:
+            # guardamos como string (como usabas)
+            try:
+                Configuracion.set("precio_semestre", str(precio))
+                flash("✅ Precio de semestre actualizado con éxito", "success")
+                return redirect(url_for('admin_configuracion'))
+            except Exception:
+                flash("Error al guardar la configuración", "danger")
+                return redirect(url_for('admin_configuracion'))
 
     precio_semestre = Configuracion.get("precio_semestre", "0")
     return render_template("admin_configuracion.html", precio_semestre=precio_semestre)
