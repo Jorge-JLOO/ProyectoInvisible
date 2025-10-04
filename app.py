@@ -68,12 +68,13 @@ class Estudiante(db.Model):
 
 class Matricula(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    estudiante_id = db.Column(db.Integer, db.ForeignKey('estudiante.id'), nullable=False)
-    curso_id = db.Column(db.Integer, db.ForeignKey('curso.id'), nullable=False)
+    estudiante_id = db.Column(db.Integer, db.ForeignKey('estudiante.id', name="fk_matricula_estudiante"), nullable=False)
+    curso_id = db.Column(db.Integer, db.ForeignKey('curso.id', name="fk_matricula_curso"), nullable=False)
     fecha = db.Column(db.DateTime, default=datetime.utcnow)
 
     estudiante = db.relationship('Estudiante', backref=db.backref('matriculas', lazy=True))
     curso = db.relationship('Curso', backref=db.backref('matriculas', lazy=True))
+
 
 
 class Pago(db.Model):
@@ -101,14 +102,6 @@ class Configuracion(db.Model):
     clave = db.Column(db.String(50), unique=True, nullable=False)
     valor = db.Column(db.String(100), nullable=False)
 
-class Curso(db.Model):
-    __tablename__ = 'curso'
-    id = db.Column(db.Integer, primary_key=True)
-    nombre = db.Column(db.String(100), unique=True, nullable=False)
-    descripcion = db.Column(db.String(255))
-    precio = db.Column(db.Float, nullable=False, default=0.0)
-
-
     @staticmethod
     def get(clave, default=None):
         item = Configuracion.query.filter_by(clave=clave).first()
@@ -124,6 +117,12 @@ class Curso(db.Model):
             item.valor = valor
         db.session.commit()
 
+class Curso(db.Model):
+    __tablename__ = 'curso'
+    id = db.Column(db.Integer, primary_key=True)
+    nombre = db.Column(db.String(100), unique=True, nullable=False)
+    descripcion = db.Column(db.String(255))
+    precio = db.Column(db.Float, nullable=False, default=0.0)
 
 # --- Context Processor ---
 @app.context_processor
