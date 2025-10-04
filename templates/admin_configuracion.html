@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block title %}Configuración - Admin{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+  <h3><i class="fa fa-cogs"></i> Configuración del sistema</h3>
+  <hr>
+  <form method="POST">
+    <div class="mb-3">
+      <label class="form-label">💰 Precio del semestre</label>
+      <input type="number" class="form-control" name="precio_semestre" value="{{ precio_semestre }}" required>
+    </div>
+    <button type="submit" class="btn btn-primary">
+      <i class="fa fa-save"></i> Guardar cambios
+    </button>
+  </form>
+</div>
+{% endblock %}

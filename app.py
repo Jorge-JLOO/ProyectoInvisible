@@ -99,6 +99,28 @@ class Configuracion(db.Model):
     valor = db.Column(db.String(100), nullable=False)
 
 
+class Configuracion(db.Model):
+    __tablename__ = 'configuracion'
+    id = db.Column(db.Integer, primary_key=True)
+    clave = db.Column(db.String(50), unique=True, nullable=False)
+    valor = db.Column(db.String(100), nullable=False)
+
+    @staticmethod
+    def get(clave, default=None):
+        item = Configuracion.query.filter_by(clave=clave).first()
+        return item.valor if item else default
+
+    @staticmethod
+    def set(clave, valor):
+        item = Configuracion.query.filter_by(clave=clave).first()
+        if not item:
+            item = Configuracion(clave=clave, valor=valor)
+            db.session.add(item)
+        else:
+            item.valor = valor
+        db.session.commit()
+
+
 # --- Context Processor ---
 @app.context_processor
 def inject_now():
@@ -324,6 +346,21 @@ def crear_deuda():
     db.session.commit()
     flash("Deuda registrada correctamente", "success")
     return redirect(url_for('admin'))
+
+@app.route('/admin/configuracion', methods=['GET', 'POST'])
+@login_required
+@admin_required
+def admin_configuracion():
+    if request.method == 'POST':
+        precio = request.form.get('precio_semestre')
+        if precio:
+            Configuracion.set("precio_semestre", precio)
+            flash("✅ Precio de semestre actualizado con éxito", "success")
+            return redirect(url_for('admin_configuracion'))
+
+    precio_semestre = Configuracion.get("precio_semestre", "0")
+    return render_template("admin_configuracion.html", precio_semestre=precio_semestre)
+
 
 # --- Cambiar contraseña ---
 @app.route('/cambiar_password', methods=['GET', 'POST'])
