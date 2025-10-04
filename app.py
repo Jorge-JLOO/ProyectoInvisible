@@ -92,6 +92,13 @@ class Deuda(db.Model):
     saldo_pendiente = db.Column(db.Float, nullable=False)
     estudiante = db.relationship('Estudiante', backref=db.backref('deudas', lazy=True))
 
+class Configuracion(db.Model):
+    __tablename__ = 'configuracion'
+    id = db.Column(db.Integer, primary_key=True)
+    clave = db.Column(db.String(50), unique=True, nullable=False)
+    valor = db.Column(db.String(100), nullable=False)
+
+
 # --- Context Processor ---
 @app.context_processor
 def inject_now():
@@ -152,7 +159,23 @@ def enrollment():
         matricula = Matricula(estudiante_id=estudiante.id, curso=curso)
         db.session.add(matricula)
         db.session.commit()
-        flash('Matrícula registrada correctamente','success')
+
+        # --- Obtener precio desde Configuración ---
+        config = Configuracion.query.filter_by(clave='precio_semestre').first()
+        if config:
+            precio_semestre = float(config.valor)
+        else:
+            precio_semestre = 1000000  # valor por defecto si no hay config
+
+        # Crear deuda automáticamente
+        deuda = Deuda(estudiante_id=estudiante.id,
+                      concepto=f"Semestre de {curso}",
+                      monto_total=precio_semestre,
+                      saldo_pendiente=precio_semestre)
+        db.session.add(deuda)
+        db.session.commit()
+
+        flash(f'Matrícula registrada y deuda generada: ${precio_semestre:,.2f}','success')
         return redirect(url_for('index'))
 
     return render_template('enrollment.html')
