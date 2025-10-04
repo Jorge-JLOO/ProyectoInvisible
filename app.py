@@ -98,13 +98,6 @@ class Configuracion(db.Model):
     clave = db.Column(db.String(50), unique=True, nullable=False)
     valor = db.Column(db.String(100), nullable=False)
 
-
-class Configuracion(db.Model):
-    __tablename__ = 'configuracion'
-    id = db.Column(db.Integer, primary_key=True)
-    clave = db.Column(db.String(50), unique=True, nullable=False)
-    valor = db.Column(db.String(100), nullable=False)
-
     @staticmethod
     def get(clave, default=None):
         item = Configuracion.query.filter_by(clave=clave).first()
