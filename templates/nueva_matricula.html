@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container mt-4">
+  <h3>Nueva Matrícula</h3>
+  <form method="POST">
+    <div class="mb-3">
+      <label class="form-label">Estudiante</label>
+      <select name="estudiante_id" class="form-control" required>
+        <option value="">-- Seleccione un estudiante --</option>
+        {% for e in estudiantes %}
+          <option value="{{ e.id }}">{{ e.nombre }} - {{ e.documento }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="mb-3">
+      <label class="form-label">Curso</label>
+      <select name="curso_id" class="form-control" required>
+        <option value="">-- Seleccione un curso --</option>
+        {% for c in cursos %}
+          <option value="{{ c.id }}">{{ c.nombre }} - ${{ "{:,.0f}".format(c.precio) }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <button type="submit" class="btn btn-primary">Registrar matrícula</button>
+    <a href="{{ url_for('admin') }}" class="btn btn-secondary">Cancelar</a>
+  </form>
+</div>
+{% endblock %}

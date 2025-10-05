@@ -409,6 +409,46 @@ def admin_configuracion():
     precio_semestre = Configuracion.get("precio_semestre", "0")
     return render_template("admin_configuracion.html", precio_semestre=precio_semestre)
 
+# --- Nueva matrícula ---
+@app.route('/matriculas/nueva', methods=['GET', 'POST'])
+@login_required
+@admin_required
+def nueva_matricula():
+    estudiantes = Estudiante.query.filter_by(activo=True).order_by(Estudiante.nombre).all()
+    cursos = Curso.query.order_by(Curso.nombre).all()
+
+    if request.method == 'POST':
+        estudiante_id = request.form.get('estudiante_id')
+        curso_id = request.form.get('curso_id')
+
+        if not estudiante_id or not curso_id:
+            flash("Debe seleccionar un estudiante y un curso", "danger")
+            return redirect(url_for('nueva_matricula'))
+
+        estudiante = Estudiante.query.get(estudiante_id)
+        curso = Curso.query.get(curso_id)
+        if not estudiante or not curso:
+            flash("Estudiante o curso no encontrado", "danger")
+            return redirect(url_for('nueva_matricula'))
+
+        # Crear matrícula
+        matricula = Matricula(estudiante_id=estudiante.id, curso_id=curso.id)
+        db.session.add(matricula)
+
+        # Crear deuda asociada al curso
+        deuda = Deuda(
+            estudiante_id=estudiante.id,
+            concepto=f"Matrícula curso {curso.nombre}",
+            monto_total=curso.precio,
+            saldo_pendiente=curso.precio
+        )
+        db.session.add(deuda)
+        db.session.commit()
+
+        flash(f"Matrícula creada para {estudiante.nombre} en {curso.nombre}. Deuda: ${curso.precio:,.2f}", "success")
+        return redirect(url_for('admin'))
+
+    return render_template('nueva_matricula.html', estudiantes=estudiantes, cursos=cursos)
 
 # --- Cambiar contraseña ---
 @app.route('/cambiar_password', methods=['GET', 'POST'])
