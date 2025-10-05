@@ -100,7 +100,7 @@
                     </tr>
                 </thead>
                 <tbody>
-               {% for m in matriculas %}
+                {% for m in matriculas %}
                     <tr>
                         <td>{{ m.id }}</td>
                         <td>{{ m.estudiante.nombre }}</td>
@@ -108,11 +108,9 @@
                         <td>{{ m.fecha.strftime('%Y-%m-%d') }}</td>
                     </tr>
                 {% endfor %}
-
                 </tbody>
             </table>
         </div>
-
         <!-- Pagos -->
         <div class="tab-pane fade" id="pagos" role="tabpanel">
             <h5>💰 Historial de Pagos</h5>
