@@ -497,6 +497,38 @@ def confirmacion_pago():
     flash("✅ Gracias, tu pago está siendo procesado", "success")
     return redirect(url_for("index"))
 
+@app.route('/admin/crear_curso', methods=['POST'])
+@login_required
+@admin_required
+def crear_curso():
+    nombre = request.form['nombre']
+    descripcion = request.form.get('descripcion', '')
+    precio = float(request.form.get('precio', 0))
+    nuevo = Curso(nombre=nombre, descripcion=descripcion, precio=precio)
+    db.session.add(nuevo)
+    db.session.commit()
+    flash("✅ Curso agregado correctamente", "success")
+    return redirect(url_for('admin'))
+
+
+# --- Carga automática de cursos iniciales (solo si la tabla está vacía) ---
+@app.before_first_request
+def seed_cursos():
+    try:
+        if Curso.query.count() == 0:
+            cursos_iniciales = [
+                Curso(nombre="Matemáticas Básicas", descripcion="Curso de fundamentos matemáticos", precio=250000),
+                Curso(nombre="Inglés Intermedio", descripcion="Curso enfocado en conversación", precio=300000),
+                Curso(nombre="Programación en Python", descripcion="Aprende a programar desde cero con Python", precio=400000),
+                Curso(nombre="Bases de Datos", descripcion="Conceptos y práctica con PostgreSQL y SQLAlchemy", precio=350000)
+            ]
+            db.session.add_all(cursos_iniciales)
+            db.session.commit()
+            print("✅ Cursos iniciales creados automáticamente.")
+    except Exception as e:
+        print(f"⚠️ No se pudieron crear cursos iniciales: {e}")
+
+
 # --- MAIN ---
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=int(os.environ.get('PORT',5000)), debug=True)
