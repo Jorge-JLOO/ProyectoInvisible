@@ -410,7 +410,6 @@ def admin_configuracion():
     return render_template("admin_configuracion.html", precio_semestre=precio_semestre)
 
 # --- Nueva matrícula ---
-@# --- Nueva matrícula ---
 @app.route('/matriculas/nueva', methods=['GET', 'POST'])
 @login_required
 @admin_required
