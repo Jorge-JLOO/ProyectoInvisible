@@ -457,7 +457,6 @@ def nueva_matricula():
 
     return render_template('nueva_matricula.html', estudiantes=estudiantes, cursos=cursos)
 
-
 # --- Cambiar contraseña ---
 @app.route('/cambiar_password', methods=['GET', 'POST'])
 @login_required
