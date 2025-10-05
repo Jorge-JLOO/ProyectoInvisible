@@ -11,7 +11,13 @@
             <button class="nav-link active" id="estudiantes-tab" data-bs-toggle="tab" data-bs-target="#estudiantes" type="button" role="tab">
                 <i class="fa fa-users"></i> Estudiantes
             </button>
-            
+
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="cursos-tab" data-bs-toggle="tab" data-bs-target="#cursos" type="button" role="tab">
+                <i class="fa fa-graduation-cap"></i> Cursos
+            </button>
+        </li>
+                
             <a href="{{ url_for('nueva_matricula') }}" class="btn btn-success mb-3">➕ Nueva Matrícula</a>
  
             <a href="{{ url_for('admin_configuracion') }}" class="btn btn-secondary mb-3">
@@ -88,6 +94,38 @@
             </table>
         </div>
 
+<!-- Cursos -->
+<div class="tab-pane fade" id="cursos" role="tabpanel">
+    <h5>📚 Gestión de Cursos</h5>
+
+    <!-- Formulario para agregar curso -->
+    <form method="POST" action="{{ url_for('crear_curso') }}" class="row g-2 mb-3">
+        <div class="col-md-3"><input type="text" name="nombre" class="form-control" placeholder="Nombre del curso" required></div>
+        <div class="col-md-4"><input type="text" name="descripcion" class="form-control" placeholder="Descripción (opcional)"></div>
+        <div class="col-md-3"><input type="number" step="0.01" name="precio" class="form-control" placeholder="Precio" required></div>
+        <div class="col-md-2"><button type="submit" class="btn btn-success w-100"><i class="fa fa-plus"></i> Crear</button></div>
+    </form>
+
+    <!-- Tabla de cursos -->
+    <table class="table table-striped table-hover">
+        <thead class="table-primary">
+            <tr>
+                <th>Nombre</th>
+                <th>Descripción</th>
+                <th>Precio</th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for curso in Curso.query.order_by(Curso.nombre).all() %}
+            <tr>
+                <td>{{ curso.nombre }}</td>
+                <td>{{ curso.descripcion or 'N/A' }}</td>
+                <td>${{ "{:,.2f}".format(curso.precio) }}</td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
         <!-- Matrículas -->
         <div class="tab-pane fade" id="matriculas" role="tabpanel">
             <h5>📘 Matrículas Registradas</h5>
