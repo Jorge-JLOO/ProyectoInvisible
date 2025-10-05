@@ -100,13 +100,15 @@
                     </tr>
                 </thead>
                 <tbody>
-                {% for matricula in matriculas %}
+               {% for m in matriculas %}
                     <tr>
-                        <td>{{ matricula.estudiante.nombre }}</td>
-                        <td>{{ matricula.curso }}</td>
-                        <td>{{ matricula.fecha.strftime('%Y-%m-%d') }}</td>
+                        <td>{{ m.id }}</td>
+                        <td>{{ m.estudiante.nombre }}</td>
+                        <td>{{ m.curso.nombre }}</td>
+                        <td>{{ m.fecha.strftime('%Y-%m-%d') }}</td>
                     </tr>
                 {% endfor %}
+
                 </tbody>
             </table>
         </div>

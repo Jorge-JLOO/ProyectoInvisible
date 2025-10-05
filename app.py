@@ -410,6 +410,7 @@ def admin_configuracion():
     return render_template("admin_configuracion.html", precio_semestre=precio_semestre)
 
 # --- Nueva matrícula ---
+@# --- Nueva matrícula ---
 @app.route('/matriculas/nueva', methods=['GET', 'POST'])
 @login_required
 @admin_required
@@ -431,6 +432,12 @@ def nueva_matricula():
             flash("Estudiante o curso no encontrado", "danger")
             return redirect(url_for('nueva_matricula'))
 
+        # ✅ Validar si ya existe matrícula del estudiante en ese curso
+        existente = Matricula.query.filter_by(estudiante_id=estudiante.id, curso_id=curso.id).first()
+        if existente:
+            flash(f"⚠️ {estudiante.nombre} ya está matriculado en el curso {curso.nombre}", "warning")
+            return redirect(url_for('nueva_matricula'))
+
         # Crear matrícula
         matricula = Matricula(estudiante_id=estudiante.id, curso_id=curso.id)
         db.session.add(matricula)
@@ -445,10 +452,11 @@ def nueva_matricula():
         db.session.add(deuda)
         db.session.commit()
 
-        flash(f"Matrícula creada para {estudiante.nombre} en {curso.nombre}. Deuda: ${curso.precio:,.2f}", "success")
+        flash(f"✅ Matrícula creada para {estudiante.nombre} en {curso.nombre}. Deuda: ${curso.precio:,.2f}", "success")
         return redirect(url_for('admin'))
 
     return render_template('nueva_matricula.html', estudiantes=estudiantes, cursos=cursos)
+
 
 # --- Cambiar contraseña ---
 @app.route('/cambiar_password', methods=['GET', 'POST'])
