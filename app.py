@@ -497,20 +497,6 @@ def confirmacion_pago():
     flash("✅ Gracias, tu pago está siendo procesado", "success")
     return redirect(url_for("index"))
 
-@app.route('/admin/crear_curso', methods=['POST'])
-@login_required
-@admin_required
-def crear_curso():
-    nombre = request.form['nombre']
-    descripcion = request.form.get('descripcion', '')
-    precio = float(request.form.get('precio', 0))
-    nuevo = Curso(nombre=nombre, descripcion=descripcion, precio=precio)
-    db.session.add(nuevo)
-    db.session.commit()
-    flash("✅ Curso agregado correctamente", "success")
-    return redirect(url_for('admin'))
-
-
 # --- Carga automática de cursos iniciales (solo si la tabla está vacía) ---
 @app.before_first_request
 def seed_cursos():
