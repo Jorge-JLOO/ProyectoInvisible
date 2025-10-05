@@ -116,7 +116,7 @@
             </tr>
         </thead>
         <tbody>
-        {% for curso in Curso.query.order_by(Curso.nombre).all() %}
+        {% for curso in Cursos %}
             <tr>
                 <td>{{ curso.nombre }}</td>
                 <td>{{ curso.descripcion or 'N/A' }}</td>

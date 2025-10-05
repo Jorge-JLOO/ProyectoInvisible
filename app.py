@@ -304,11 +304,14 @@ def admin():
     matriculas = Matricula.query.order_by(Matricula.fecha.desc()).all()
     pagos = Pago.query.order_by(Pago.fecha.desc()).all()
     deudas = Deuda.query.order_by(Deuda.id.desc()).all()
+    cursos = Curso.query.order_by(Curso.nombre).all()
+
     return render_template("admin.html",
                            estudiantes=estudiantes,
                            matriculas=matriculas,
                            pagos=pagos,
-                           deudas=deudas)
+                           deudas=deudas,
+                           cursos=cursos)
 
 
 @app.route('/admin/estudiante/<int:id>/editar', methods=['GET', 'POST'])
@@ -388,6 +391,39 @@ def crear_deuda():
     db.session.add(deuda)
     db.session.commit()
     flash("Deuda registrada correctamente", "success")
+    return redirect(url_for('admin'))
+
+# --- Crear nuevo curso ---
+@app.route('/admin/crear_curso', methods=['POST'])
+@login_required
+@admin_required
+def crear_curso():
+    nombre = request.form.get('nombre', '').strip()
+    descripcion = request.form.get('descripcion', '').strip()
+    precio_raw = request.form.get('precio', '0')
+
+    if not nombre:
+        flash("⚠️ El nombre del curso es obligatorio", "warning")
+        return redirect(url_for('admin'))
+
+    try:
+        precio = float(precio_raw)
+    except ValueError:
+        flash("⚠️ Precio inválido", "warning")
+        return redirect(url_for('admin'))
+
+    if precio < 0:
+        flash("⚠️ El precio no puede ser negativo", "warning")
+        return redirect(url_for('admin'))
+
+    if Curso.query.filter_by(nombre=nombre).first():
+        flash("❌ Ya existe un curso con ese nombre", "danger")
+        return redirect(url_for('admin'))
+
+    nuevo = Curso(nombre=nombre, descripcion=descripcion, precio=precio)
+    db.session.add(nuevo)
+    db.session.commit()
+    flash("✅ Curso agregado correctamente", "success")
     return redirect(url_for('admin'))
 
 @app.route('/admin/configuracion', methods=['GET', 'POST'])
