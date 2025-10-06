@@ -79,9 +79,11 @@ class Docente(db.Model):
     documento = db.Column(db.String(50), unique=True, nullable=False)
     telefono = db.Column(db.String(50))
     activo = db.Column(db.Boolean, default=True)
-
     usuario_id = db.Column(db.Integer, db.ForeignKey('usuario.id'))
+    
+    # Relación con Curso (un docente puede dictar varios cursos)
     cursos = db.relationship('Curso', backref='docente', lazy=True)
+
 
 class Matricula(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -147,9 +149,15 @@ class Configuracion(db.Model):
 class Curso(db.Model):
     __tablename__ = 'curso'
     id = db.Column(db.Integer, primary_key=True)
-    nombre = db.Column(db.String(100), unique=True, nullable=False)
-    descripcion = db.Column(db.String(255))
-    precio = db.Column(db.Float, nullable=False, default=0.0)
+    nombre = db.Column(db.String(100), nullable=False)
+    descripcion = db.Column(db.Text)
+    precio = db.Column(db.Float, nullable=False)
+    
+    # Relación con Docente
+    docente_id = db.Column(db.Integer, db.ForeignKey('docente.id'))
+
+    # Relación con matrícula
+    matriculas = db.relationship('Matricula', backref='curso', lazy=True)
 
 # --- Context Processor ---
 @app.context_processor
