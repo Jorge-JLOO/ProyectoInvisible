@@ -92,8 +92,7 @@ class Matricula(db.Model):
     fecha = db.Column(db.DateTime, default=datetime.utcnow)
 
     estudiante = db.relationship('Estudiante', backref=db.backref('matriculas', lazy=True))
-    curso = db.relationship('Curso', backref=db.backref('matriculas', lazy=True))
-
+    
 class Pago(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     estudiante_id = db.Column(db.Integer, db.ForeignKey('estudiante.id'), nullable=True)
