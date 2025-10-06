@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block title %}Panel de Administración{% endblock %}
+{% block content %}
+<div class="container text-center mt-5">
+  <h2>🏢 Bienvenido, {{ current_user.username }} (Administrador)</h2>
+  <p>Desde aquí podrás gestionar estudiantes, docentes, cursos y matrículas.</p>
+  <a href="{{ url_for('admin') }}" class="btn btn-primary mt-3">Ir al Panel de Gestión</a>
+</div>
+{% endblock %}

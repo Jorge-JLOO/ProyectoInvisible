@@ -40,7 +40,10 @@ class Usuario(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(50), unique=True, nullable=False)
     password = db.Column(db.String(200), nullable=False)
-    role = db.Column(db.String(20), nullable=False, default='user')  # "admin" o "user"
+    role = db.Column(db.String(20), nullable=False, default='estudiante')  # admin, docente, estudiante
+
+    estudiante = db.relationship('Estudiante', uselist=False, backref='usuario')
+    docente = db.relationship('Docente', uselist=False, backref='usuario')
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -60,11 +63,25 @@ def admin_required(f):
     return wrapped
 
 class Estudiante(db.Model):
+    __tablename__ = 'estudiante'
     id = db.Column(db.Integer, primary_key=True)
     nombre = db.Column(db.String(100), nullable=False)
     documento = db.Column(db.String(50), unique=True, nullable=False)
     telefono = db.Column(db.String(50))
     activo = db.Column(db.Boolean, default=True)
+    
+    usuario_id = db.Column(db.Integer, db.ForeignKey('usuario.id'))  # 🔹 Relación corregida
+
+class Docente(db.Model):
+    __tablename__ = 'docente'
+    id = db.Column(db.Integer, primary_key=True)
+    nombre = db.Column(db.String(100), nullable=False)
+    documento = db.Column(db.String(50), unique=True, nullable=False)
+    telefono = db.Column(db.String(50))
+    activo = db.Column(db.Boolean, default=True)
+
+    usuario_id = db.Column(db.Integer, db.ForeignKey('usuario.id'))
+    cursos = db.relationship('Curso', backref='docente', lazy=True)
 
 class Matricula(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -156,10 +173,18 @@ def login():
         if user and check_password_hash(user.password, password):
             login_user(user)
             flash("Bienvenido/a", "success")
-            # mejor llevar al index; admin() ya valida permisos
-            return redirect(url_for('index'))
-        else:
-            flash("Usuario o contraseña incorrectos", "danger")
+
+            # Redirección por rol
+            if user.role == 'admin':
+                return redirect(url_for('admin_dashboard'))
+            elif user.role == 'docente':
+                return redirect(url_for('docente_dashboard'))
+            elif user.role == 'estudiante':
+                return redirect(url_for('estudiante_dashboard'))
+            else:
+                return redirect(url_for('index'))
+
+        flash("Usuario o contraseña incorrectos", "danger")
 
     return render_template('login.html')
 
@@ -532,6 +557,30 @@ def pago_online():
 def confirmacion_pago():
     flash("✅ Gracias, tu pago está siendo procesado", "success")
     return redirect(url_for("index"))
+
+@app.route('/admin_dashboard')
+@login_required
+def admin_dashboard():
+    if current_user.role != 'admin':
+        abort(403)
+    return render_template('dashboard_admin.html')
+
+
+@app.route('/docente_dashboard')
+@login_required
+def docente_dashboard():
+    if current_user.role != 'docente':
+        abort(403)
+    return render_template('dashboard_docente.html')
+
+
+@app.route('/estudiante_dashboard')
+@login_required
+def estudiante_dashboard():
+    if current_user.role != 'estudiante':
+        abort(403)
+    return render_template('dashboard_estudiante.html')
+
 
 # --- MAIN ---
 if __name__ == '__main__':

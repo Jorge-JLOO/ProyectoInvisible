@@ -1,0 +1,134 @@
+En la pantalla principa, creo que es el index.html, debería salir solo la presentacion de la institución, ejemplo: logos, programas ofertado con fotos y demas, pero tambien 3 roles, cada uno debe entra con su usuario y contraseña, los ROLES SON: Administracion, Docente y Estudiantes.
+
+
+El rol de estudiante debe llevar al estudiante a una pagina principal, donde encontrará información del curso o carrera que está cursando, pero tambien, desde esa plataforma el estudiante podrá encontrar informacion de trabajos, plan de estudio, tambien desde esa misma plataforma el estudiante deberá presentar examenes, cuando el docente lo requiera.(Esto por el momento en el rol estudiantes)
+
+el roll de Docente, debe tener el espacio donde los docente suban informacion del curso o carrera que cursan los estudiante, dependiendo tambien de la materia, desde aquí debe haber una forma de subir los temas a tratar de cada docente para los estudiantes, dependiendo el curso, la materia, porque puede haber un prfesor que dicte 3 materias distintas, tambien debe haber la opcion de asignar trabajos y examanes para x, o, y cursos. (Esto por ahora, para no enrredarme)
+
+El rol Administración debe ser el encargado de manejar la base de dato de todos los estudiantes, ya sean activos o inactivos, tambien manejar la informacion de los docentes, ya que el admin se encargará tambien de activar o inactivar Docentes.
+Tambien el rol de Admin se encargará de matricular cada estudiante, despues que se verifique el pago de la matrícula, será el encargado de asignar los cursos que se oferten, darle el valor a cada curso. (ESTO POR AHORA, PARA NO ENRREDARNOS)
+
+________________________________________________________________
+
+
+AQUÍ EMPIEZA LA TRANSFORMACION
+
+
+Perfecto Jorge ✅
+Lo que planteas es una evolución completa del sistema hacia una plataforma educativa con tres roles funcionales (Administración, Docente, Estudiante).
+Es totalmente posible hacerlo paso a paso, sin romper tu proyecto actual.
+
+Déjame explicarte la visión general, el plan técnico por etapas, y luego te propongo por dónde comenzamos para que el cambio sea ordenado y seguro 👇
+
+🎯 VISIÓN GENERAL
+
+Queremos construir una plataforma educativa completa, tipo “campus virtual”.
+El flujo será:
+
+🌐 Página pública (index.html)
+
+Presentación de la institución (logo, misión, programas ofertados, fotos).
+
+Tres botones:
+
+Administración → Login para el panel de administración.
+
+Docente → Login para profesores.
+
+Estudiante → Login para alumnos.
+
+👨‍🎓 Rol Estudiante
+
+Dashboard con:
+
+Información personal.
+
+Cursos matriculados.
+
+Materias activas.
+
+Archivos o materiales del curso.
+
+Exámenes en línea y trabajos asignados (más adelante).
+
+👨‍🏫 Rol Docente
+
+Dashboard con:
+
+Sus cursos y materias asignadas.
+
+Subir contenidos (temas, guías, archivos PDF, etc.)
+
+Asignar tareas y exámenes.
+
+Calificar exámenes/trabajos (más adelante).
+
+🏢 Rol Administración
+
+Panel completo (ya tienes gran parte):
+
+CRUD de estudiantes.
+
+CRUD de docentes.
+
+CRUD de cursos.
+
+Asignación de cursos a docentes y estudiantes.
+
+Control de pagos y matrículas.
+
+Configuración general del sistema.
+
+🧩 ESTRUCTURA DE DATOS (Base de Datos)
+
+Vamos a evolucionar tus tablas SQLAlchemy así:
+
+Entidad	Campos principales	Relaciones
+Usuario	id, username, password, role (admin/docente/estudiante)	1 → 1 con Estudiante o Docente
+Estudiante	id, nombre, documento, telefono, activo, usuario_id	1 → n Matrícula
+Docente	id, nombre, documento, usuario_id, activo	1 → n Curso
+Curso	id, nombre, descripcion, precio, docente_id	1 → n Materia
+Materia	id, nombre, descripcion, curso_id	1 → n Trabajo / Examen
+Trabajo / Examen (más adelante)	id, titulo, descripcion, fecha_entrega, materia_id, docente_id	
+🧱 PLAN DE IMPLEMENTACIÓN (Etapas)
+Etapa	Objetivo	Cambios principales
+1️⃣ Fase Base (estructura y roles)	Implementar los 3 roles y pantallas iniciales	Nuevo login con redirección según role
+2️⃣ Fase Estudiante	Crear dashboard del estudiante	Mostrar sus cursos, materias, materiales
+3️⃣ Fase Docente	Crear dashboard del docente	Crear/editar materias, subir materiales
+4️⃣ Fase Admin	Completar panel con docentes, materias, asignaciones	CRUD docente, curso, materia
+5️⃣ Fase Evaluaciones (más adelante)	Implementar exámenes, tareas y calificaciones	Formularios dinámicos, notas
+🚀 SUGERENCIA: COMENZAR POR LA FASE 1
+
+Primero debemos construir el sistema de roles con pantallas separadas.
+Así:
+
+login.html → Detecta rol.
+
+Redirige a:
+
+/admin_dashboard (si role = admin)
+
+/docente_dashboard (si role = docente)
+
+/estudiante_dashboard (si role = estudiante)
+
+Luego podremos agregar los contenidos de cada rol.
+
+🛠️ SIGUIENTE PASO
+
+Quiero confirmar contigo cómo proceder antes de escribir el nuevo código base.
+
+Dime por favor:
+
+¿Quieres que hagamos este cambio en el mismo proyecto actual (ProyectoInvisible) o crear una rama nueva (por ejemplo, plataforma_educativa_v2)?
+
+¿Deseas que te prepare primero la estructura de roles y redirección de login (Fase 1), para que ya puedas entrar como admin/docente/estudiante?
+
+En cuanto me confirmes eso ☝️, te preparo:
+
+el nuevo esquema de modelos,
+
+las rutas básicas de login/redirección,
+
+y los 3 dashboards separados (HTML + Flask listos).
+

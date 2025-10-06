@@ -1,0 +1,8 @@
+{% extends "base.html" %}
+{% block title %}Panel del Estudiante{% endblock %}
+{% block content %}
+<div class="container text-center mt-5">
+  <h2>👨‍🎓 Bienvenido, {{ current_user.username }}</h2>
+  <p>Aquí encontrarás tus cursos activos, materiales y evaluaciones.</p>
+</div>
+{% endblock %}
